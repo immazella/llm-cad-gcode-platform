@@ -103,21 +103,103 @@ npm run dev
 
 For a single-server setup, build the frontend with `cd frontend && npm run build`, then start the backend and open **http://localhost:8000**. FastAPI serves the generated `frontend/dist` directory.
 
-## LLM configuration
+## Connecting an LLM API
 
-Copy `backend/.env.example` to `backend/.env` and configure a provider:
+The application runs without any API key in **offline mode** (a rule-based command parser). To use natural-language chat, connect an LLM provider. Keys stay on your computer; they are never committed to Git.
 
-| Provider | Configuration |
+### 1. Get an API key
+
+Create a key in your provider's console, for example Anthropic, OpenAI, DeepSeek, or Google AI Studio (Gemini). A local Ollama model needs no key. Provider usage is billed to your own account.
+
+### 2. Create `backend/.env`
+
+From the repository root:
+
+```bash
+cp backend/.env.example backend/.env
+# Windows: copy backend\.env.example backend\.env
+```
+
+`backend/.env` is listed in `.gitignore`. Never put a real key in `.env.example` or any other tracked file.
+
+### 3. Choose one provider
+
+Open `backend/.env` in a text editor and keep **one** block. Replace the placeholder with your key, without quotes or spaces around `=`.
+
+**Anthropic Claude**
+
+```env
+LLM_PROVIDER=anthropic
+ANTHROPIC_API_KEY=your-anthropic-key
+ANTHROPIC_MODEL=claude-sonnet-5-5
+```
+
+**OpenAI**
+
+```env
+LLM_PROVIDER=openai
+OPENAI_API_KEY=your-openai-key
+OPENAI_MODEL=gpt-4.1-mini
+```
+
+**DeepSeek**
+
+```env
+LLM_PROVIDER=deepseek
+DEEPSEEK_API_KEY=your-deepseek-key
+DEEPSEEK_MODEL=deepseek-chat
+```
+
+**Google Gemini (OpenAI-compatible endpoint)**
+
+```env
+LLM_PROVIDER=openai
+OPENAI_API_KEY=your-gemini-key
+OPENAI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/
+OPENAI_MODEL=gemini-2.5-flash
+```
+
+**Local Ollama** (choose a model that supports tool calling)
+
+```env
+LLM_PROVIDER=openai
+OPENAI_API_KEY=ollama
+OPENAI_BASE_URL=http://localhost:11434/v1
+OPENAI_MODEL=qwen2.5:7b
+```
+
+Other OpenAI-compatible services (Groq, OpenRouter, and similar) use the same `LLM_PROVIDER=openai` pattern with their own `OPENAI_BASE_URL` and `OPENAI_MODEL`. The model must support **tool/function calling**; the assistant works by calling CAD/CAM tools.
+
+| Variable | Purpose |
 |---|---|
-| Anthropic Claude | `LLM_PROVIDER=anthropic`, `ANTHROPIC_API_KEY` |
-| OpenAI | `LLM_PROVIDER=openai`, `OPENAI_API_KEY` |
-| DeepSeek | `LLM_PROVIDER=deepseek`, `DEEPSEEK_API_KEY` |
-| OpenAI-compatible services or local Ollama | `LLM_PROVIDER=openai`, `OPENAI_BASE_URL`, `OPENAI_MODEL`, and any required key |
-| Offline demo | `LLM_PROVIDER=offline` |
+| `LLM_PROVIDER` | `anthropic`, `openai`, `deepseek`, or `offline`. If omitted, the first key found among Anthropic, OpenAI, and DeepSeek selects the provider. |
+| `*_API_KEY` | Your provider key. |
+| `*_MODEL` | Optional model name; the defaults are the values shown above. Pick a model your account can access. |
+| `OPENAI_BASE_URL` | Endpoint for OpenAI-compatible services. |
+| `DEEPSEEK_BASE_URL` | Optional DeepSeek endpoint (default `https://api.deepseek.com`). |
 
-Use the model and endpoint settings in `.env.example` as configuration examples and choose a model available to your provider account.
+Environment variables already set in your shell take precedence over `backend/.env`, which is useful for CI or temporary keys:
 
-**Offline mode** uses a small rule-based parser in `backend/app/llm/offline.py` (Turkish) and `backend/app/llm/offline_en.py` (English), not an LLM. It supports demonstrating CAD/CAM operations without API access. Set `LLM_PROVIDER=offline` explicitly when running without a key.
+```bash
+export LLM_PROVIDER=openai OPENAI_API_KEY=your-openai-key
+./run_mac_linux.sh
+```
+
+### 4. Restart and verify
+
+The backend reads `backend/.env` only at startup. Stop the app (Ctrl+C) and start it again with `./run_mac_linux.sh` or `run_windows.bat`.
+
+The badge in the top-right corner shows the active provider and model. If it still shows **Offline**, check the provider name, key, and file location, then restart. A rejected key or unavailable model is reported in the chat as an LLM service error; the app keeps running.
+
+The badge is also a button: click it to switch between the configured provider and offline mode without editing `.env`.
+
+### MCP clients
+
+When the tools are used from Claude Desktop, Claude Code, Cursor, or another MCP client, that client's own model does the orchestration. **No key is needed in `backend/.env` for MCP use** (see [MCP integration](#mcp-integration)).
+
+### Offline mode
+
+Without a key the app automatically uses a small rule-based parser in `backend/app/llm/offline.py` (Turkish) and `backend/app/llm/offline_en.py` (English). It is not an LLM; it lets you demonstrate CAD/CAM operations without API access. Set `LLM_PROVIDER=offline` to force this mode even when keys are present.
 
 ### Credentials and repository hygiene
 
