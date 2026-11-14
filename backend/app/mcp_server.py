@@ -917,8 +917,8 @@ def build_server(router: Router | None = None) -> Server:
         return types.GetPromptResult(description=prompt.description, messages=[
             types.PromptMessage(role="user", content=types.TextContent(type="text", text=instructions))])
 
-    server = Server(SERVER_NAME, version="0.2.0", title="LLM CAD · G-Code (BüsProje)",
-                    description="Doğal dille CAD, CNC G-code üretimi ve makine profiline göre doğrulama",
+    server = Server(SERVER_NAME, version="0.2.0", title="LLM-Based CAD and G-Code Platform",
+                    description="Natural-language CAD modeling, CNC G-code generation, and machine-profile-based validation",
                     instructions=instructions, on_list_tools=on_list_tools, on_call_tool=on_call_tool,
                     on_list_resources=on_list_resources, on_read_resource=on_read_resource,
                     on_list_prompts=on_list_prompts, on_get_prompt=on_get_prompt)

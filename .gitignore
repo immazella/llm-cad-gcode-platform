@@ -1,4 +1,4 @@
-# Yerel ortamlar ve gizli bilgiler (yalnız örnek dosyalar paylaşılır)
+# Local environments and secrets (only examples are published)
 .env
 .env.*
 !.env.example
@@ -7,7 +7,7 @@
 .venv/
 venv/
 
-# Python / JavaScript bağımlılıkları ve derleme çıktıları
+# Python / JavaScript dependencies and build outputs
 __pycache__/
 *.py[cod]
 .pytest_cache/
@@ -15,7 +15,7 @@ node_modules/
 dist/
 *.tsbuildinfo
 
-# Özel oturumlar, yerel yedekler ve arşivler
+# Private sessions, local backups, and archives
 backend/data/
 _yedek_*/
 *.zip
@@ -24,7 +24,7 @@ _yedek_*/
 *.tgz
 *.log
 
-# İsteğe bağlı, ayrı kurulan TTS bağımlılığı ve ses çıktıları
+# Local vendor directories and generated audio
 /third_party/
 *.wav
 
