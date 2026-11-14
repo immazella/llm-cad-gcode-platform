@@ -1,0 +1,427 @@
+{
+ "controller": "fanuc",
+ "source": {
+  "title": "FANUC Series 0i-D Bakım Kılavuzu B-64305EN/03, Ek A Alarm Listesi",
+  "url": "https://manualmachine.com/fanuc/b64305en/24332684-alarm-list"
+ },
+ "note": "İngilizce açıklamalar kılavuzdan birebir; Türkçe anlam ve öneriler bu sistemin özetidir. Farklı seri veya yazılım sürümünde metin farklı olabilir; makinenin kendi kılavuzuyla teyit edin.",
+ "entries": [
+  {
+   "code": "PS0003",
+   "aliases": [
+    "PS3",
+    "3",
+    "0003"
+   ],
+   "kind": "PS",
+   "title": "TOO MANY DIGIT",
+   "description_en": "Data entered with more digits than permitted in the NC instruction word. The number of permissible digits varies according to the function and the word.",
+   "meaning_tr": "Bir adres kelimesindeki sayı izin verilenden fazla basamak içeriyor.",
+   "actions": [
+    "Satırdaki sayıların basamak sayısını ve ondalık biçimini kontrol et."
+   ],
+   "related_rules": [
+    "E001"
+   ]
+  },
+  {
+   "code": "PS0004",
+   "aliases": [
+    "PS4",
+    "4",
+    "0004"
+   ],
+   "kind": "PS",
+   "title": "ADDRESS NOT FOUND",
+   "description_en": "NC word(s) address + numerical value not in word format.",
+   "meaning_tr": "Kelime 'adres harfi + sayı' biçiminde değil (harf eksik).",
+   "actions": [
+    "Satırı G1 X10 F500 biçiminde yaz."
+   ],
+   "related_rules": [
+    "E001"
+   ]
+  },
+  {
+   "code": "PS0005",
+   "aliases": [
+    "PS5",
+    "5",
+    "0005"
+   ],
+   "kind": "PS",
+   "title": "NO DATA AFTER ADDRESS",
+   "description_en": "NC word(s) address + numerical value not in word format. This alarm is also generated when a custom macro does not contain a reserved word, or does not conform to the syntax.",
+   "meaning_tr": "Adres harfinden sonra sayı yok.",
+   "actions": [
+    "Değeri eksik kelimeyi bul ve tamamla."
+   ],
+   "related_rules": [
+    "E001"
+   ]
+  },
+  {
+   "code": "PS0006",
+   "aliases": [
+    "PS6",
+    "6",
+    "0006"
+   ],
+   "kind": "PS",
+   "title": "ILLEGAL USE OF MINUS SIGN",
+   "description_en": "A minus sign (–) was specified at an NC instruction word or system variable where no minus signal may be specified.",
+   "meaning_tr": "Eksi işaretine izin verilmeyen bir kelimede eksi işareti var.",
+   "actions": [
+    "Negatif olmaması gereken değeri (ör. F, S, T) düzelt."
+   ],
+   "related_rules": []
+  },
+  {
+   "code": "PS0007",
+   "aliases": [
+    "PS7",
+    "7",
+    "0007"
+   ],
+   "kind": "PS",
+   "title": "ILLEGAL USE OF DECIMAL POINT",
+   "description_en": "A decimal point (.) was specified at an address where no decimal point may be specified, or two decimal points were specified.",
+   "meaning_tr": "Ondalık noktaya izin verilmeyen adreste nokta var ya da iki nokta yazılmış.",
+   "actions": [
+    "Örn. T, M, H, D, O adresleri tam sayı olmalı."
+   ],
+   "related_rules": [
+    "E001"
+   ]
+  },
+  {
+   "code": "PS0009",
+   "aliases": [
+    "PS9",
+    "9",
+    "0009"
+   ],
+   "kind": "PS",
+   "title": "IMPROPER NC-ADDRESS",
+   "description_en": "An illegal address was specified, or parameter 1020 is not set.",
+   "meaning_tr": "Geçersiz adres harfi kullanılmış.",
+   "actions": [
+    "Satırdaki harfleri kontrol et; makinenin tanımadığı harf var mı bak."
+   ],
+   "related_rules": [
+    "E001"
+   ]
+  },
+  {
+   "code": "PS0010",
+   "aliases": [
+    "PS10",
+    "10",
+    "0010"
+   ],
+   "kind": "PS",
+   "title": "IMPROPER G-CODE",
+   "description_en": "An unusable G code is specified.",
+   "meaning_tr": "Kontrol ünitesinin kullanamadığı bir G kodu var.",
+   "actions": [
+    "G kodunu makinenin desteklediği eşdeğerle değiştir veya programı bu makinenin profiliyle yeniden üret."
+   ],
+   "related_rules": [
+    "E002",
+    "E018"
+   ]
+  },
+  {
+   "code": "PS0011",
+   "aliases": [
+    "PS11",
+    "11",
+    "0011"
+   ],
+   "kind": "PS",
+   "title": "FEED ZERO ( COMMAND )",
+   "description_en": "The cutting feedrate instructed by an F code has been set to 0.",
+   "meaning_tr": "Kesme ilerlemesi (F) sıfır.",
+   "actions": [
+    "İlk kesme hareketinden önce geçerli bir F değeri ver."
+   ],
+   "related_rules": [
+    "E010"
+   ]
+  },
+  {
+   "code": "PS0015",
+   "aliases": [
+    "PS15",
+    "15",
+    "0015"
+   ],
+   "kind": "PS",
+   "title": "TOO MANY SIMULTANEOUS AXES",
+   "description_en": "A move command was specified for more axes than can be controlled by simultaneous axis control.",
+   "meaning_tr": "Aynı anda kontrol edilebilenden fazla eksene hareket komutu verilmiş.",
+   "actions": [
+    "Hareketi eksenlere bölerek ayrı satırlarda yaz."
+   ],
+   "related_rules": []
+  },
+  {
+   "code": "PS0020",
+   "aliases": [
+    "PS20",
+    "20",
+    "0020"
+   ],
+   "kind": "PS",
+   "title": "OVER TOLERANCE OF RADIUS",
+   "description_en": "An arc was specified for which the difference in the radius at the start and end points exceeds the value set in parameter No. 3410.",
+   "meaning_tr": "Yayın başlangıç ve bitiş noktalarındaki yarıçap farkı izin verilen sınırı aşıyor.",
+   "actions": [
+    "I/J/K veya R değerlerini ve yayın bitiş noktasını kontrol et."
+   ],
+   "related_rules": [
+    "E053"
+   ]
+  },
+  {
+   "code": "PS0021",
+   "aliases": [
+    "PS21",
+    "21",
+    "0021"
+   ],
+   "kind": "PS",
+   "title": "ILLEGAL PLANE SELECT",
+   "description_en": "The plane selection instructions G17 to G19 are in error.",
+   "meaning_tr": "Düzlem seçimi (G17–G19) hatalı.",
+   "actions": [
+    "Yaydan önce doğru düzlemi seç (freze için genelde G17)."
+   ],
+   "related_rules": [
+    "W052"
+   ]
+  },
+  {
+   "code": "PS0022",
+   "aliases": [
+    "PS22",
+    "22",
+    "0022"
+   ],
+   "kind": "PS",
+   "title": "R OR I,J,K COMMAND NOT FOUND",
+   "description_en": "The command for circular interpolation lacks arc radius R or coordinate I, J, or K of the distance between the start point to the center of the arc.",
+   "meaning_tr": "Yay komutunda R veya I/J/K yok.",
+   "actions": [
+    "G2/G3 satırına R veya I/J ekle."
+   ],
+   "related_rules": [
+    "E050"
+   ]
+  },
+  {
+   "code": "PS0029",
+   "aliases": [
+    "PS29",
+    "29",
+    "0029"
+   ],
+   "kind": "PS",
+   "title": "ILLEGAL OFFSET VALUE",
+   "description_en": "Illegal offset No.",
+   "meaning_tr": "Geçersiz ofset değeri.",
+   "actions": [
+    "Ofset tablosundaki değeri kontrol et."
+   ],
+   "related_rules": []
+  },
+  {
+   "code": "PS0030",
+   "aliases": [
+    "PS30",
+    "30",
+    "0030"
+   ],
+   "kind": "PS",
+   "title": "ILLEGAL OFFSET NUMBER",
+   "description_en": "An illegal offset No. was specified.",
+   "meaning_tr": "Geçersiz ofset numarası (H veya D) kullanılmış.",
+   "actions": [
+    "H/D numarasının ofset tablosunda tanımlı olduğunu kontrol et."
+   ],
+   "related_rules": [
+    "I071"
+   ]
+  },
+  {
+   "code": "PS0033",
+   "aliases": [
+    "PS33",
+    "33",
+    "0033"
+   ],
+   "kind": "PS",
+   "title": "NO INTERSECTION AT G41/G42",
+   "description_en": "The intersection cannot be obtained by the intersection calculation in tool radius/tool nose radius compensation. Modify the program.",
+   "meaning_tr": "Takım yarıçap telafisinde kesişim noktası hesaplanamıyor.",
+   "actions": [
+    "Programı değiştir: giriş/çıkış hareketlerini ve takım yarıçapını kontrol et."
+   ],
+   "related_rules": []
+  },
+  {
+   "code": "PS0041",
+   "aliases": [
+    "PS41",
+    "41",
+    "0041"
+   ],
+   "kind": "PS",
+   "title": "INTERFERENCE IN G41/G42",
+   "description_en": "In tool radius/tool nose radius compensation, excessive cutting may occur. Modify the program.",
+   "meaning_tr": "Takım yarıçap telafisinde fazla kesme (girişim) oluşabilir.",
+   "actions": [
+    "Takım bu köşeye/kanala sığmıyor olabilir; daha küçük takım veya farklı yol kullan."
+   ],
+   "related_rules": []
+  },
+  {
+   "code": "PS0070",
+   "aliases": [
+    "PS70",
+    "70",
+    "0070"
+   ],
+   "kind": "PS",
+   "title": "NO PROGRAM SPACE IN MEMORY",
+   "description_en": "The memory area is insufficient. Delete any unnecessary programs, then retry.",
+   "meaning_tr": "Program belleği yetersiz.",
+   "actions": [
+    "Gereksiz programları sil veya programı satır satır besle (DNC)."
+   ],
+   "related_rules": []
+  },
+  {
+   "code": "PS0071",
+   "aliases": [
+    "PS71",
+    "71",
+    "0071"
+   ],
+   "kind": "PS",
+   "title": "DATA NOT FOUND",
+   "description_en": "1) The address to be searched was not found. 2) The program with specified program number was not found in program number search. 3) In the program restart block number specification, the specified block number could not be found. Check the data.",
+   "meaning_tr": "Aranan adres, program numarası veya blok numarası bulunamadı.",
+   "actions": [
+    "Program/blok numarasını kontrol et."
+   ],
+   "related_rules": []
+  },
+  {
+   "code": "PS0073",
+   "aliases": [
+    "PS73",
+    "73",
+    "0073"
+   ],
+   "kind": "PS",
+   "title": "PROGRAM NUMBER ALREADY IN USE",
+   "description_en": "The commanded program number has already been used. Change the program number or delete unnecessary programs and execute program registration again.",
+   "meaning_tr": "Bu program numarası (O) zaten kullanılıyor.",
+   "actions": [
+    "O numarasını değiştir veya eski programı sil."
+   ],
+   "related_rules": [
+    "W019"
+   ]
+  },
+  {
+   "code": "OT0500",
+   "aliases": [
+    "OT500",
+    "500",
+    "0500"
+   ],
+   "kind": "OT",
+   "title": "+ OVERTRAVEL ( SOFT 1 )",
+   "description_en": "Exceeded the positive side stored stroke check 1.",
+   "meaning_tr": "Eksen, pozitif yöndeki yazılımsal kurs sınırını aştı.",
+   "actions": [
+    "İş sıfırını (G54), takım boyunu ve parçanın tabladaki yerini kontrol et; doğrulama raporundaki E040'a bak."
+   ],
+   "related_rules": [
+    "E040"
+   ]
+  },
+  {
+   "code": "OT0501",
+   "aliases": [
+    "OT501",
+    "501",
+    "0501"
+   ],
+   "kind": "OT",
+   "title": "- OVERTRAVEL ( SOFT 1 )",
+   "description_en": "Exceeded the negative side stored stroke check 1.",
+   "meaning_tr": "Eksen, negatif yöndeki yazılımsal kurs sınırını aştı.",
+   "actions": [
+    "İş sıfırını (G54), takım boyunu ve parçanın tabladaki yerini kontrol et; doğrulama raporundaki E040'a bak."
+   ],
+   "related_rules": [
+    "E040"
+   ]
+  },
+  {
+   "code": "OT0506",
+   "aliases": [
+    "OT506",
+    "506",
+    "0506"
+   ],
+   "kind": "OT",
+   "title": "+ OVERTRAVEL ( HARD )",
+   "description_en": "The stroke limit switch in the positive direction was triggered.",
+   "meaning_tr": "Pozitif yöndeki donanım limit anahtarı tetiklendi.",
+   "actions": [
+    "Ekseni elle limitten çıkar, sebebi bul; programın kursu aştığı satırı kontrol et."
+   ],
+   "related_rules": [
+    "E040"
+   ]
+  },
+  {
+   "code": "OT0507",
+   "aliases": [
+    "OT507",
+    "507",
+    "0507"
+   ],
+   "kind": "OT",
+   "title": "- OVERTRAVEL ( HARD )",
+   "description_en": "The stroke limit switch in the negative direction was triggered.",
+   "meaning_tr": "Negatif yöndeki donanım limit anahtarı tetiklendi.",
+   "actions": [
+    "Ekseni elle limitten çıkar, sebebi bul; programın kursu aştığı satırı kontrol et."
+   ],
+   "related_rules": [
+    "E040"
+   ]
+  },
+  {
+   "code": "SV0401",
+   "aliases": [
+    "SV401",
+    "401",
+    "0401"
+   ],
+   "kind": "SV",
+   "title": "IMPROPER V_READY OFF",
+   "description_en": "Although the ready signal (PRDY) of the position control was ON, the ready signal (VRDY) of the velocity control was OFF.",
+   "meaning_tr": "Servo hazır sinyali hatası (donanım/servo sürücü).",
+   "actions": [
+    "Program kaynaklı değildir; bakım ekibine haber ver."
+   ],
+   "related_rules": []
+  }
+ ]
+}

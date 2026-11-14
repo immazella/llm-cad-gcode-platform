@@ -1,0 +1,31 @@
+# Yerel ortamlar ve gizli bilgiler (yalnız örnek dosyalar paylaşılır)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.venv/
+venv/
+
+# Python / JavaScript bağımlılıkları ve derleme çıktıları
+__pycache__/
+*.py[cod]
+.pytest_cache/
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Özel oturumlar, yerel yedekler ve arşivler
+backend/data/
+_yedek_*/
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.log
+
+# İsteğe bağlı, ayrı kurulan TTS bağımlılığı ve ses çıktıları
+/third_party/
+*.wav
+
+.DS_Store

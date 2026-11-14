@@ -1,0 +1,27 @@
+{
+  "id": "fanuc_vmc",
+  "name": "Dik işleme merkezi — Fanuc 0i-MF tarzı (örnek)",
+  "controller": "fanuc",
+  "post": "fanuc",
+  "description": "20 takımlı otomatik takım değiştiricili, 3 eksen dik işleme merkezi. Fanuc tarzı diyalekt: % ve O numarası, M6 takım değişimi, G43 H takım boyu telafisi, G81/G83 delme döngüleri.",
+  "axes": 3,
+  "travel": {"X": {"min": 0, "max": 762}, "Y": {"min": 0, "max": 406}, "Z": {"min": -508, "max": 0}},
+  "max_feed": 12000,
+  "rapid_feed": 30000,
+  "max_spindle": 10000,
+  "min_spindle": 0,
+  "accel": {"X": 3000, "Y": 3000, "Z": 2500},
+  "tool_changer": true,
+  "max_tools": 20,
+  "tool_change_time_s": 3.0,
+  "canned_cycles": true,
+  "requires_tool_length_comp": true,
+  "program_number": true,
+  "supported_g": [0, 1, 2, 3, 4, 9, 10, 17, 18, 19, 20, 21, 28, 30, 40, 41, 42, 43, 44, 49, 52, 53, 54, 55, 56, 57, 58, 59, 61, 64, 73, 74, 76, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 94, 95, 98, 99],
+  "supported_m": [0, 1, 2, 3, 4, 5, 6, 8, 9, 19, 30],
+  "default_work_offset": [381, 203, -350],
+  "notes": [
+    "Örnek profildir; gerçek bir tezgâhın değerleri kendi parametrelerinden alınmalıdır.",
+    "Makro programlama (G65/G66, #değişkenler) bu örnek profilde kapalı varsayılmıştır."
+  ]
+}

@@ -1,0 +1,103 @@
+{
+  "id": "grbl_router",
+  "name": "Masaüstü CNC router — GRBL 1.1 (örnek)",
+  "controller": "grbl",
+  "post": "grbl",
+  "description": "GRBL 1.1 ile çalışan hobi/masaüstü router. Delme döngüleri (G81/G83) ve M6 takım değişimi yoktur; takım değişimi M0 ile duraklatıp elle yapılır. G43 H yerine yalnızca G43.1 vardır. Z kursu kısadır.",
+  "axes": 3,
+  "travel": {
+    "X": {
+      "min": -400,
+      "max": 0
+    },
+    "Y": {
+      "min": -300,
+      "max": 0
+    },
+    "Z": {
+      "min": -80,
+      "max": 0
+    }
+  },
+  "max_feed": 2000,
+  "rapid_feed": 2500,
+  "max_spindle": 12000,
+  "min_spindle": 0,
+  "accel": {
+    "X": 500,
+    "Y": 500,
+    "Z": 200
+  },
+  "tool_changer": false,
+  "max_tools": 1,
+  "tool_change_time_s": 60.0,
+  "canned_cycles": false,
+  "requires_tool_length_comp": false,
+  "program_number": false,
+  "supported_g": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    10,
+    17,
+    18,
+    19,
+    20,
+    21,
+    28,
+    28.1,
+    30,
+    30.1,
+    38.2,
+    38.3,
+    38.4,
+    38.5,
+    40,
+    43.1,
+    49,
+    53,
+    54,
+    55,
+    56,
+    57,
+    58,
+    59,
+    61,
+    80,
+    90,
+    91,
+    91.1,
+    92,
+    92.1,
+    93,
+    94
+  ],
+  "supported_m": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    7,
+    8,
+    9,
+    30,
+    56
+  ],
+  "default_work_offset": [
+    -200,
+    -150,
+    -60
+  ],
+  "notes": [
+    "Örnek profildir; gerçek değerler GRBL $ ayarlarından ($110-$132, $30) alınmalıdır.",
+    "Makine koordinatları GRBL'deki yaygın kurulum gibi negatif bölgededir (home noktası 0,0,0)."
+  ],
+  "coolant_modes": {
+    "flood": "M8",
+    "mist": "M7"
+  }
+}

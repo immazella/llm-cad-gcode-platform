@@ -1,0 +1,685 @@
+{
+ "controller": "grbl",
+ "source": {
+  "title": "GRBL v1.1 resmî hata ve alarm kodu tabloları (doc/csv)",
+  "url": "https://github.com/gnea/grbl/tree/master/doc/csv",
+  "revision": "bfb67f0"
+ },
+ "note": "İngilizce açıklamalar resmî tablodan birebir; Türkçe anlamlar bunun çevirisidir.",
+ "entries": [
+  {
+   "code": "error:1",
+   "aliases": [
+    "error 1",
+    "err1",
+    "e1"
+   ],
+   "kind": "error",
+   "title": "Expected command letter",
+   "description_en": "G-code words consist of a letter and a value. Letter was not found.",
+   "meaning_tr": "Satırda adres harfi bekleniyordu ama bulunamadı (ör. sayı harfsiz yazılmış).",
+   "actions": [],
+   "related_rules": [
+    "E001"
+   ]
+  },
+  {
+   "code": "error:2",
+   "aliases": [
+    "error 2",
+    "err2",
+    "e2"
+   ],
+   "kind": "error",
+   "title": "Bad number format",
+   "description_en": "Missing the expected G-code word value or numeric value format is not valid.",
+   "meaning_tr": "Adres harfinden sonra sayı yok ya da sayı biçimi geçersiz.",
+   "actions": [],
+   "related_rules": [
+    "E001"
+   ]
+  },
+  {
+   "code": "error:3",
+   "aliases": [
+    "error 3",
+    "err3",
+    "e3"
+   ],
+   "kind": "error",
+   "title": "Invalid statement",
+   "description_en": "Grbl '$' system command was not recognized or supported.",
+   "meaning_tr": null,
+   "actions": [],
+   "related_rules": []
+  },
+  {
+   "code": "error:4",
+   "aliases": [
+    "error 4",
+    "err4",
+    "e4"
+   ],
+   "kind": "error",
+   "title": "Value < 0",
+   "description_en": "Negative value received for an expected positive value.",
+   "meaning_tr": null,
+   "actions": [],
+   "related_rules": []
+  },
+  {
+   "code": "error:5",
+   "aliases": [
+    "error 5",
+    "err5",
+    "e5"
+   ],
+   "kind": "error",
+   "title": "Setting disabled",
+   "description_en": "Homing cycle failure. Homing is not enabled via settings.",
+   "meaning_tr": null,
+   "actions": [],
+   "related_rules": []
+  },
+  {
+   "code": "error:6",
+   "aliases": [
+    "error 6",
+    "err6",
+    "e6"
+   ],
+   "kind": "error",
+   "title": "Value < 3 usec",
+   "description_en": "Minimum step pulse time must be greater than 3usec.",
+   "meaning_tr": null,
+   "actions": [],
+   "related_rules": []
+  },
+  {
+   "code": "error:7",
+   "aliases": [
+    "error 7",
+    "err7",
+    "e7"
+   ],
+   "kind": "error",
+   "title": "EEPROM read fail. Using defaults",
+   "description_en": "An EEPROM read failed. Auto-restoring affected EEPROM to default values.",
+   "meaning_tr": null,
+   "actions": [],
+   "related_rules": []
+  },
+  {
+   "code": "error:8",
+   "aliases": [
+    "error 8",
+    "err8",
+    "e8"
+   ],
+   "kind": "error",
+   "title": "Not idle",
+   "description_en": "Grbl '$' command cannot be used unless Grbl is IDLE. Ensures smooth operation during a job.",
+   "meaning_tr": null,
+   "actions": [],
+   "related_rules": []
+  },
+  {
+   "code": "error:9",
+   "aliases": [
+    "error 9",
+    "err9",
+    "e9"
+   ],
+   "kind": "error",
+   "title": "G-code lock",
+   "description_en": "G-code commands are locked out during alarm or jog state.",
+   "meaning_tr": "Makine alarm ya da jog durumundayken G-code kabul edilmez.",
+   "actions": [
+    "Alarmı sıfırla ($X veya homing), sonra programı yeniden başlat."
+   ],
+   "related_rules": []
+  },
+  {
+   "code": "error:10",
+   "aliases": [
+    "error 10",
+    "err10",
+    "e10"
+   ],
+   "kind": "error",
+   "title": "Homing not enabled",
+   "description_en": "Soft limits cannot be enabled without homing also enabled.",
+   "meaning_tr": null,
+   "actions": [],
+   "related_rules": []
+  },
+  {
+   "code": "error:11",
+   "aliases": [
+    "error 11",
+    "err11",
+    "e11"
+   ],
+   "kind": "error",
+   "title": "Line overflow",
+   "description_en": "Max characters per line exceeded. Received command line was not executed.",
+   "meaning_tr": "Satır, GRBL'nin satır başına karakter sınırını aşıyor; satır çalıştırılmadı.",
+   "actions": [],
+   "related_rules": []
+  },
+  {
+   "code": "error:12",
+   "aliases": [
+    "error 12",
+    "err12",
+    "e12"
+   ],
+   "kind": "error",
+   "title": "Step rate > 30kHz",
+   "description_en": "Grbl '$' setting value cause the step rate to exceed the maximum supported.",
+   "meaning_tr": null,
+   "actions": [],
+   "related_rules": []
+  },
+  {
+   "code": "error:13",
+   "aliases": [
+    "error 13",
+    "err13",
+    "e13"
+   ],
+   "kind": "error",
+   "title": "Check Door",
+   "description_en": "Safety door detected as opened and door state initiated.",
+   "meaning_tr": null,
+   "actions": [],
+   "related_rules": []
+  },
+  {
+   "code": "error:14",
+   "aliases": [
+    "error 14",
+    "err14",
+    "e14"
+   ],
+   "kind": "error",
+   "title": "Line length exceeded",
+   "description_en": "Build info or startup line exceeded EEPROM line length limit. Line not stored.",
+   "meaning_tr": null,
+   "actions": [],
+   "related_rules": []
+  },
+  {
+   "code": "error:15",
+   "aliases": [
+    "error 15",
+    "err15",
+    "e15"
+   ],
+   "kind": "error",
+   "title": "Travel exceeded",
+   "description_en": "Jog target exceeds machine travel. Jog command has been ignored.",
+   "meaning_tr": "Jog hedefi makine kursunu aşıyor; jog komutu yok sayıldı.",
+   "actions": [],
+   "related_rules": []
+  },
+  {
+   "code": "error:16",
+   "aliases": [
+    "error 16",
+    "err16",
+    "e16"
+   ],
+   "kind": "error",
+   "title": "Invalid jog command",
+   "description_en": "Jog command has no '=' or contains prohibited g-code.",
+   "meaning_tr": null,
+   "actions": [],
+   "related_rules": []
+  },
+  {
+   "code": "error:17",
+   "aliases": [
+    "error 17",
+    "err17",
+    "e17"
+   ],
+   "kind": "error",
+   "title": "Setting disabled",
+   "description_en": "Laser mode requires PWM output.",
+   "meaning_tr": null,
+   "actions": [],
+   "related_rules": []
+  },
+  {
+   "code": "error:20",
+   "aliases": [
+    "error 20",
+    "err20",
+    "e20"
+   ],
+   "kind": "error",
+   "title": "Unsupported command",
+   "description_en": "Unsupported or invalid g-code command found in block.",
+   "meaning_tr": "Satırda GRBL'nin desteklemediği ya da geçersiz bir G kodu var.",
+   "actions": [
+    "Satırdaki G kodunu GRBL'nin desteklediği eşdeğerle değiştir (GRBL'de delme döngüsü ve M6 yoktur).",
+    "Programı GRBL profiliyle yeniden üret."
+   ],
+   "related_rules": [
+    "E002",
+    "E018"
+   ]
+  },
+  {
+   "code": "error:21",
+   "aliases": [
+    "error 21",
+    "err21",
+    "e21"
+   ],
+   "kind": "error",
+   "title": "Modal group violation",
+   "description_en": "More than one g-code command from same modal group found in block.",
+   "meaning_tr": "Aynı satırda aynı modal gruptan birden fazla G kodu var.",
+   "actions": [],
+   "related_rules": [
+    "E003"
+   ]
+  },
+  {
+   "code": "error:22",
+   "aliases": [
+    "error 22",
+    "err22",
+    "e22"
+   ],
+   "kind": "error",
+   "title": "Undefined feed rate",
+   "description_en": "Feed rate has not yet been set or is undefined.",
+   "meaning_tr": "İlerleme hızı (F) henüz verilmemiş.",
+   "actions": [
+    "İlk G1/G2/G3 satırından önce F değeri ver."
+   ],
+   "related_rules": [
+    "E010"
+   ]
+  },
+  {
+   "code": "error:23",
+   "aliases": [
+    "error 23",
+    "err23",
+    "e23"
+   ],
+   "kind": "error",
+   "title": "Invalid gcode ID:23",
+   "description_en": "G-code command in block requires an integer value.",
+   "meaning_tr": "Bu G kodu tam sayı değer gerektiriyor.",
+   "actions": [],
+   "related_rules": []
+  },
+  {
+   "code": "error:24",
+   "aliases": [
+    "error 24",
+    "err24",
+    "e24"
+   ],
+   "kind": "error",
+   "title": "Invalid gcode ID:24",
+   "description_en": "More than one g-code command that requires axis words found in block.",
+   "meaning_tr": "Aynı satırda eksen kelimesi isteyen birden fazla G kodu var.",
+   "actions": [],
+   "related_rules": []
+  },
+  {
+   "code": "error:25",
+   "aliases": [
+    "error 25",
+    "err25",
+    "e25"
+   ],
+   "kind": "error",
+   "title": "Invalid gcode ID:25",
+   "description_en": "Repeated g-code word found in block.",
+   "meaning_tr": "Aynı adres harfi satırda tekrar ediyor.",
+   "actions": [],
+   "related_rules": [
+    "E004"
+   ]
+  },
+  {
+   "code": "error:26",
+   "aliases": [
+    "error 26",
+    "err26",
+    "e26"
+   ],
+   "kind": "error",
+   "title": "Invalid gcode ID:26",
+   "description_en": "No axis words found in block for g-code command or current modal state which requires them.",
+   "meaning_tr": "Bu komut veya aktif modal durum eksen kelimesi gerektiriyor ama satırda yok.",
+   "actions": [],
+   "related_rules": []
+  },
+  {
+   "code": "error:27",
+   "aliases": [
+    "error 27",
+    "err27",
+    "e27"
+   ],
+   "kind": "error",
+   "title": "Invalid gcode ID:27",
+   "description_en": "Line number value is invalid.",
+   "meaning_tr": null,
+   "actions": [],
+   "related_rules": []
+  },
+  {
+   "code": "error:28",
+   "aliases": [
+    "error 28",
+    "err28",
+    "e28"
+   ],
+   "kind": "error",
+   "title": "Invalid gcode ID:28",
+   "description_en": "G-code command is missing a required value word.",
+   "meaning_tr": "G kodunun gerektirdiği bir değer kelimesi eksik.",
+   "actions": [],
+   "related_rules": []
+  },
+  {
+   "code": "error:29",
+   "aliases": [
+    "error 29",
+    "err29",
+    "e29"
+   ],
+   "kind": "error",
+   "title": "Invalid gcode ID:29",
+   "description_en": "G59.x work coordinate systems are not supported.",
+   "meaning_tr": "G59.x iş koordinat sistemleri desteklenmiyor.",
+   "actions": [],
+   "related_rules": []
+  },
+  {
+   "code": "error:30",
+   "aliases": [
+    "error 30",
+    "err30",
+    "e30"
+   ],
+   "kind": "error",
+   "title": "Invalid gcode ID:30",
+   "description_en": "G53 only allowed with G0 and G1 motion modes.",
+   "meaning_tr": "G53 yalnızca G0 ve G1 ile kullanılabilir.",
+   "actions": [],
+   "related_rules": []
+  },
+  {
+   "code": "error:31",
+   "aliases": [
+    "error 31",
+    "err31",
+    "e31"
+   ],
+   "kind": "error",
+   "title": "Invalid gcode ID:31",
+   "description_en": "Axis words found in block when no command or current modal state uses them.",
+   "meaning_tr": "Satırda eksen kelimesi var ama onu kullanacak komut veya modal durum yok.",
+   "actions": [],
+   "related_rules": [
+    "E020"
+   ]
+  },
+  {
+   "code": "error:32",
+   "aliases": [
+    "error 32",
+    "err32",
+    "e32"
+   ],
+   "kind": "error",
+   "title": "Invalid gcode ID:32",
+   "description_en": "G2 and G3 arcs require at least one in-plane axis word.",
+   "meaning_tr": "G2/G3 yayı düzlemde en az bir eksen kelimesi gerektirir.",
+   "actions": [],
+   "related_rules": []
+  },
+  {
+   "code": "error:33",
+   "aliases": [
+    "error 33",
+    "err33",
+    "e33"
+   ],
+   "kind": "error",
+   "title": "Invalid gcode ID:33",
+   "description_en": "Motion command target is invalid.",
+   "meaning_tr": "Hareket hedefi geçersiz (ör. yay geometrisi tutarsız).",
+   "actions": [
+    "Yayın başlangıç, bitiş ve merkez değerlerini kontrol et."
+   ],
+   "related_rules": [
+    "E053"
+   ]
+  },
+  {
+   "code": "error:34",
+   "aliases": [
+    "error 34",
+    "err34",
+    "e34"
+   ],
+   "kind": "error",
+   "title": "Invalid gcode ID:34",
+   "description_en": "Arc radius value is invalid.",
+   "meaning_tr": "Yay yarıçapı (R) geçersiz.",
+   "actions": [],
+   "related_rules": [
+    "E051"
+   ]
+  },
+  {
+   "code": "error:35",
+   "aliases": [
+    "error 35",
+    "err35",
+    "e35"
+   ],
+   "kind": "error",
+   "title": "Invalid gcode ID:35",
+   "description_en": "G2 and G3 arcs require at least one in-plane offset word.",
+   "meaning_tr": "G2/G3 yayı düzlemde en az bir merkez ofseti (I/J/K) gerektirir.",
+   "actions": [],
+   "related_rules": [
+    "E050"
+   ]
+  },
+  {
+   "code": "error:36",
+   "aliases": [
+    "error 36",
+    "err36",
+    "e36"
+   ],
+   "kind": "error",
+   "title": "Invalid gcode ID:36",
+   "description_en": "Unused value words found in block.",
+   "meaning_tr": "Satırda kullanılmayan değer kelimeleri var.",
+   "actions": [],
+   "related_rules": []
+  },
+  {
+   "code": "error:37",
+   "aliases": [
+    "error 37",
+    "err37",
+    "e37"
+   ],
+   "kind": "error",
+   "title": "Invalid gcode ID:37",
+   "description_en": "G43.1 dynamic tool length offset is not assigned to configured tool length axis.",
+   "meaning_tr": null,
+   "actions": [],
+   "related_rules": []
+  },
+  {
+   "code": "error:38",
+   "aliases": [
+    "error 38",
+    "err38",
+    "e38"
+   ],
+   "kind": "error",
+   "title": "Invalid gcode ID:38",
+   "description_en": "Tool number greater than max supported value.",
+   "meaning_tr": "Takım numarası desteklenen en büyük değeri aşıyor.",
+   "actions": [],
+   "related_rules": []
+  },
+  {
+   "code": "ALARM:1",
+   "aliases": [
+    "alarm 1",
+    "alarm:1"
+   ],
+   "kind": "alarm",
+   "title": "Hard limit",
+   "description_en": "Hard limit has been triggered. Machine position is likely lost due to sudden halt. Re-homing is highly recommended.",
+   "meaning_tr": "Donanım limit anahtarı tetiklendi. Ani duruş nedeniyle makine konumu muhtemelen kayboldu; yeniden homing şiddetle önerilir.",
+   "actions": [
+    "Limit anahtarını serbest bırak, makineyi yeniden homing yap.",
+    "Programın kursu aşan satırını bul (E040)."
+   ],
+   "related_rules": [
+    "E040"
+   ]
+  },
+  {
+   "code": "ALARM:2",
+   "aliases": [
+    "alarm 2",
+    "alarm:2"
+   ],
+   "kind": "alarm",
+   "title": "Soft limit",
+   "description_en": "Soft limit alarm. G-code motion target exceeds machine travel. Machine position retained. Alarm may be safely unlocked.",
+   "meaning_tr": "Yazılımsal limit: G-code hareket hedefi makine kursunu aşıyor. Makine konumu korunur; alarm güvenle kaldırılabilir.",
+   "actions": [
+    "Eksen kursu aşımı: iş sıfırını (G54) veya parçanın tabladaki yerini kontrol et; doğrulama raporundaki E040'a bak.",
+    "$X ile alarmı kaldır."
+   ],
+   "related_rules": [
+    "E040"
+   ]
+  },
+  {
+   "code": "ALARM:3",
+   "aliases": [
+    "alarm 3",
+    "alarm:3"
+   ],
+   "kind": "alarm",
+   "title": "Abort during cycle",
+   "description_en": "Reset while in motion. Machine position is likely lost due to sudden halt. Re-homing is highly recommended.",
+   "meaning_tr": "Hareket sırasında reset. Makine konumu muhtemelen kayboldu; yeniden homing önerilir.",
+   "actions": [],
+   "related_rules": []
+  },
+  {
+   "code": "ALARM:4",
+   "aliases": [
+    "alarm 4",
+    "alarm:4"
+   ],
+   "kind": "alarm",
+   "title": "Probe fail",
+   "description_en": "Probe fail. Probe is not in the expected initial state before starting probe cycle when G38.2 and G38.3 is not triggered and G38.4 and G38.5 is triggered.",
+   "meaning_tr": "Prob hatası: prob, döngü başlamadan önce beklenen durumda değil.",
+   "actions": [],
+   "related_rules": []
+  },
+  {
+   "code": "ALARM:5",
+   "aliases": [
+    "alarm 5",
+    "alarm:5"
+   ],
+   "kind": "alarm",
+   "title": "Probe fail",
+   "description_en": "Probe fail. Probe did not contact the workpiece within the programmed travel for G38.2 and G38.4.",
+   "meaning_tr": "Prob hatası: prob, programlanan mesafe içinde parçaya temas etmedi.",
+   "actions": [],
+   "related_rules": []
+  },
+  {
+   "code": "ALARM:6",
+   "aliases": [
+    "alarm 6",
+    "alarm:6"
+   ],
+   "kind": "alarm",
+   "title": "Homing fail",
+   "description_en": "Homing fail. The active homing cycle was reset.",
+   "meaning_tr": "Homing hatası: homing döngüsü resetlendi.",
+   "actions": [],
+   "related_rules": []
+  },
+  {
+   "code": "ALARM:7",
+   "aliases": [
+    "alarm 7",
+    "alarm:7"
+   ],
+   "kind": "alarm",
+   "title": "Homing fail",
+   "description_en": "Homing fail. Safety door was opened during homing cycle.",
+   "meaning_tr": "Homing hatası: homing sırasında güvenlik kapısı açıldı.",
+   "actions": [],
+   "related_rules": []
+  },
+  {
+   "code": "ALARM:8",
+   "aliases": [
+    "alarm 8",
+    "alarm:8"
+   ],
+   "kind": "alarm",
+   "title": "Homing fail",
+   "description_en": "Homing fail. Pull off travel failed to clear limit switch. Try increasing pull-off setting or check wiring.",
+   "meaning_tr": "Homing hatası: geri çekilme limit anahtarını bırakamadı.",
+   "actions": [],
+   "related_rules": []
+  },
+  {
+   "code": "ALARM:9",
+   "aliases": [
+    "alarm 9",
+    "alarm:9"
+   ],
+   "kind": "alarm",
+   "title": "Homing fail",
+   "description_en": "Homing fail. Could not find limit switch within search distances. Try increasing max travel, decreasing pull-off distance, or check wiring.",
+   "meaning_tr": "Homing hatası: limit anahtarı arama mesafesi içinde bulunamadı.",
+   "actions": [],
+   "related_rules": []
+  },
+  {
+   "code": "ALARM:10",
+   "aliases": [
+    "alarm 10",
+    "alarm:10"
+   ],
+   "kind": "alarm",
+   "title": "Homing fail",
+   "description_en": "Homing fail. Second dual axis limit switch failed to trigger within configured search distance after first. Try increasing trigger fail distance or check wiring.",
+   "meaning_tr": "Homing hatası: çift eksenin ikinci limit anahtarı tetiklenmedi.",
+   "actions": [],
+   "related_rules": []
+  }
+ ]
+}

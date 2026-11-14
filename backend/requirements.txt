@@ -1,0 +1,15 @@
+cadquery>=2.5
+fastapi>=0.110
+uvicorn[standard]>=0.29
+python-multipart>=0.0.9
+python-dotenv>=1.0
+pydantic>=2.6
+anthropic>=0.40
+openai>=1.40
+pytest>=8.0
+httpx>=0.27
+shapely>=2.0
+svgelements>=1.9
+Hershey-Fonts>=2.1
+mcp>=2.3,<3
+matplotlib>=3.8
