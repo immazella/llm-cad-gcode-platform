@@ -242,24 +242,67 @@ Existing MCP identifiers such as `busproje-cad` and the `ui://busproje/viewer.ht
 
 When connected to the web backend, MCP edits are reflected in the browser and the model can inspect the user's current face selection. Local sessions use `backend/data/session.pkl` by default.
 
-### Remote clients
+### Remote clients: one-time link
 
-`run_mcp_remote.sh` starts the HTTP MCP server and a temporary Cloudflare tunnel:
+Web-based clients such as claude.ai or ChatGPT cannot start a process on your computer, so they cannot use the local stdio server. `run_mcp_remote.sh` gives them a temporary public HTTPS address instead.
+
+> **The link is one-time.** It is valid for a single run of the script and stops working as soon as the script exits. Every new run produces a **new address and a new secret token**, so the connector in your client must be updated each time. It is meant for demos and short sessions, not for permanent hosting.
+
+**Prerequisites**
+
+- Run `./run_mac_linux.sh` once so `.venv` and the backend dependencies exist.
+- Install [cloudflared](https://developers.cloudflare.com/tunnel/downloads/) (`brew install cloudflared` on macOS). No Cloudflare account is needed.
+
+**Create the link**
 
 ```bash
-brew install cloudflared
 ./run_mcp_remote.sh
 ```
 
-The script prints a URL shaped like `https://<tunnel>.trycloudflare.com/mcp/<secret-token>`. Add it to the client as a remote MCP server.
+The script performs these steps:
 
-- The URL works only while the script runs. Restarting normally creates a new URL and token.
-- Set `MCP_TOKEN` to supply a token or `MCP_HTTP_PORT` to change the port.
-- **Anyone with the complete URL can use the tools. Do not share it publicly.** This is a demo connection, not an OAuth-based authentication system.
-- Local-file access tools are disabled in remote mode. Upload STEP files through the web UI and send G-code as text.
-- Run the web application separately to observe remote edits in its 3D viewer.
-- The server uses stateless Streamable HTTP with JSON responses. The tunnel is temporary, not a production deployment.
-- There is no equivalent Windows wrapper; use WSL or start the HTTP server and tunnel manually.
+1. **Checks the environment.** It stops if `cloudflared` or `.venv` is missing, installs changed backend requirements, and refuses to start if the port (default `8765`) is already in use.
+2. **Generates a secret token.** Unless you set `MCP_TOKEN`, it creates a random 32-character URL-safe token with Python's `secrets.token_urlsafe(24)`. Tokens shorter than 16 characters are rejected.
+3. **Starts the MCP server on localhost only.** `python -m app.mcp_server --http` listens on `127.0.0.1:<port>` and serves MCP only at the path `/mcp/<token>`. Requests to any other path, including a wrong token, get `404`.
+4. **Opens a Cloudflare Quick Tunnel.** `cloudflared tunnel --url http://127.0.0.1:<port>` creates a random `https://<random-name>.trycloudflare.com` address that forwards to the local server. Your computer opens the connection outward, so no router or firewall changes are required.
+5. **Prints the link** once the tunnel address appears:
+
+   ```text
+   https://<random-name>.trycloudflare.com/mcp/<secret-token>
+   ```
+
+6. **Keeps both processes alive** until you press **Ctrl+C**, or until either process stops. On exit it terminates the server and the tunnel and deletes the temporary log. From that moment the link is dead.
+
+**Connect a client**
+
+Add the printed URL in your client as a remote MCP server (often called a *custom connector*), for example in claude.ai or ChatGPT. The tunnel's DNS record can take a few seconds to propagate; if the first attempt fails, wait briefly and retry. After restarting the script, replace the old URL with the new one and refresh the connector so the client reloads the tool list.
+
+**Optional settings**
+
+| Variable | Effect |
+|---|---|
+| `MCP_HTTP_PORT` | Local port (default `8765`), e.g. `MCP_HTTP_PORT=8766 ./run_mcp_remote.sh`. |
+| `MCP_TOKEN` | Use your own token (at least 16 characters) instead of a random one. The tunnel address still changes on every run. |
+| `MCP_LOG_LEVEL=INFO` | Log each tool call and its duration to the terminal. |
+
+**Security and limits**
+
+- **The token in the URL is the only access control.** Anyone who has the complete link can call the tools while the script runs. Do not post it publicly, and stop the script when you are done.
+- This is not OAuth or user authentication; it is a short-lived demo connection.
+- Tools that touch files on your computer (`load_step`, `save_gcode`, `add_engraving_svg`, and any `path` argument) are hidden and rejected in remote mode. Upload STEP files through the web UI and send G-code as text.
+- No LLM key is used by the server in this mode: the remote client's own model calls the tools.
+- If the web application is also running (`./run_mac_linux.sh` in another terminal), the remote model works on the same live model and its changes appear in the browser's 3D view. Otherwise the workspace runs inside the MCP process.
+- Quick Tunnels do not support SSE, so the server uses stateless Streamable HTTP with plain JSON responses. Cloudflare gives no uptime guarantee for Quick Tunnels; a permanent address requires a Cloudflare account and a named tunnel.
+- There is no Windows wrapper. Use WSL, or run the two commands manually:
+
+  ```bash
+  cd backend
+  MCP_TOKEN=<your-long-random-token> ../.venv/bin/python -m app.mcp_server --http
+  # in a second terminal:
+  cloudflared tunnel --url http://127.0.0.1:8765
+  ```
+
+  Then combine the printed `trycloudflare.com` address with `/mcp/<your-long-random-token>`.
 
 ### MCP-specific tools
 
