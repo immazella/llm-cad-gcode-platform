@@ -20,7 +20,15 @@ The same CAD/CAM tools are available through an **MCP server**, allowing compati
 - **MCP integration:** local stdio, remote HTTP, and an embedded 3D viewer for compatible MCP Apps hosts.
 - **Workshop and audit tools:** inspect machine-related information, compare programs, review checklists, and examine tool-call logs.
 
-The application UI and the rule-based offline command parser currently use Turkish. This README documents the project in English; English example prompts assume a configured LLM provider.
+## Language support
+
+The web application and the embedded MCP viewer are available in **Turkish and English**. Use the **Language** selector in the top bar; the choice is saved in the browser and Turkish is the default.
+
+- The interface, validation reports, rule descriptions, error messages, workshop guidance, and **new** assistant replies follow the selected language.
+- Earlier chat messages and audit records stay in the language they were written in; switching does not rewrite them or reset the model.
+- G-code, numeric values, identifiers, file names, and user-supplied names are never translated. Generated programs are identical in both languages.
+- The API negotiates the language from `Accept-Language` (`tr` or `en`); `/api/chat` also accepts an optional `"language"` field. Clients that send neither get Turkish, so existing MCP integrations keep working unchanged.
+- **Offline mode** has a Turkish grammar and a smaller English grammar (for example `create box 60x40x10`, `add hole diameter 6 depth 5 x=20 y=-15`, `generate G-code`). Free-form English needs an online LLM provider.
 
 ## Architecture
 
@@ -109,7 +117,7 @@ Copy `backend/.env.example` to `backend/.env` and configure a provider:
 
 Use the model and endpoint settings in `.env.example` as configuration examples and choose a model available to your provider account.
 
-**Offline mode** uses a small rule-based Turkish parser in `backend/app/llm/offline.py`, not an LLM. It supports demonstrating CAD/CAM operations without API access. Set `LLM_PROVIDER=offline` explicitly when running without a key.
+**Offline mode** uses a small rule-based parser in `backend/app/llm/offline.py` (Turkish) and `backend/app/llm/offline_en.py` (English), not an LLM. It supports demonstrating CAD/CAM operations without API access. Set `LLM_PROVIDER=offline` explicitly when running without a key.
 
 ### Credentials and repository hygiene
 
@@ -208,7 +216,7 @@ Viewer behavior depends on the client's MCP Apps support. Refresh the client's c
 | Validate | Load `examples/hatali_ornek.nc` and inspect the highlighted findings. |
 | Animate | Open the toolpath view and use playback controls to inspect the program. |
 
-For offline demonstrations, use Turkish commands, for example `60x60x10 plaka oluştur` and `G-code üret`.
+For offline demonstrations, use the offline grammar of the selected language, for example `60x60x10 plaka oluştur` in Turkish or `create box 60x60x10` in English, then `G-code üret` / `generate G-code`.
 
 ### Coordinate conventions
 
@@ -296,11 +304,17 @@ cd backend
 
 On Windows, use `..\.venv\Scripts\python -m pytest -q` from `backend`.
 
-Build the web frontend:
+Test and build the web frontend and the MCP viewer:
 
 ```bash
 cd frontend
 npm ci
+npm test
+npm run build
+
+cd ../mcp_ui
+npm ci
+npm test
 npm run build
 ```
 

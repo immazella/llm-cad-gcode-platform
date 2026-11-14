@@ -1,3 +1,5 @@
+import { tx, useLocale } from "../i18n";
+import { enumLabel } from '../presentation';
 import { Canvas, ThreeEvent, useFrame, useThree } from "@react-three/fiber";
 import { GizmoHelper, GizmoViewport, Grid, OrbitControls } from "@react-three/drei";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -86,6 +88,7 @@ const Face = memo(function Face({
 });
 
 function Edges({ edges }: { edges: number[][] }) {
+  useLocale();
   const geom = useMemo(() => {
     const pos: number[] = [];
     for (const e of edges) {
@@ -106,6 +109,7 @@ function Edges({ edges }: { edges: number[][] }) {
 
 /** Model değiştiğinde kamerayı parçaya sığdırır. */
 export function FitCamera({ size, center, fitKey }: { size: number; center: THREE.Vector3; fitKey: string }) {
+  useLocale();
   const { camera, controls } = useThree();
   useEffect(() => {
     const d = Math.max(size, 20) * 1.6;
@@ -186,6 +190,7 @@ function Label3D({
   px?: number;
   onTop?: boolean;
 }) {
+  useLocale();
   const { tex, aspect } = useMemo(() => labelTexture(text, color), [text, color]);
   const { size, camera } = useThree();
   const fov = (camera as THREE.PerspectiveCamera).fov ?? 40;
@@ -211,6 +216,7 @@ function targetOf(controls: unknown) {
 
 /** Ana ızgara çizgilerinin üstüne X / Y koordinatlarını (seçili birimde) yazar. */
 function GridLabels({ section }: { section: number }) {
+  useLocale();
   const { controls } = useThree();
   const unit = useUnit();
   const [k, setK] = useState<[number, number]>([0, 0]);
@@ -243,6 +249,7 @@ function GridLabels({ section }: { section: number }) {
 }
 
 function AdaptiveGrid({ gridSize, onGrid }: { gridSize: number; onGrid?: (g: GridInfo) => void }) {
+  useLocale();
   const { camera, controls } = useThree();
   const unit = useUnit();
   const def = UNITS[unit];
@@ -290,6 +297,7 @@ function AdaptiveGrid({ gridSize, onGrid }: { gridSize: number; onGrid?: (g: Gri
  * Birim yalnızca görünümü etkiler; model, sohbet ve G-code mm ile çalışmaya devam eder.
  */
 export function GridLegend({ grid }: { grid: GridInfo | null }) {
+  useLocale();
   const unit = useUnit();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -311,9 +319,9 @@ export function GridLegend({ grid }: { grid: GridInfo | null }) {
   };
   return (
     <div className="grid-legend mono" ref={ref}>
-      <span className="gl-swatch major" /> ana çizgi {fmtGridValue(grid.section, unit)}
-      <span className="gl-swatch minor" /> hücre {fmtGridValue(grid.cell, unit)}
-      <button className={`gl-unit ${open ? "on" : ""}`} title="Ölçü birimini değiştir" onClick={() => setOpen((o) => !o)}>
+      <span className="gl-swatch major" />  {tx("ana çizgi")} {fmtGridValue(grid.section, unit)}
+      <span className="gl-swatch minor" />  {tx("hücre")} {fmtGridValue(grid.cell, unit)}
+      <button className={`gl-unit ${open ? "on" : ""}`} title={tx("Ölçü birimini değiştir")} onClick={() => setOpen((o) => !o)}>
         {UNITS[unit].label} <span className="gl-caret">▾</span>
       </button>
       {open && (
@@ -326,7 +334,7 @@ export function GridLegend({ grid }: { grid: GridInfo | null }) {
             ))}
           </div>
           <div className="unit-name">{UNITS[unit].name}</div>
-          <div className="unit-note">Izgara ve 3B görünümdeki ölçüler bu birimle gösterilir. Model, sohbet ve G‑code mm ile çalışır.</div>
+          <div className="unit-note">{tx("Izgara ve 3B görünümdeki ölçüler bu birimle gösterilir. Model, sohbet ve G‑code mm ile çalışır.")}</div>
         </div>
       )}
     </div>
@@ -334,6 +342,7 @@ export function GridLegend({ grid }: { grid: GridInfo | null }) {
 }
 
 export function SceneBase({ gridSize, onGrid }: { gridSize: number; onGrid?: (g: GridInfo) => void }) {
+  useLocale();
   return (
     <>
       <ambientLight intensity={0.55} />
@@ -365,6 +374,7 @@ interface Projected {
 
 /** Canvas içindeki kamerayı/kontrolleri dışarıdaki seçim mantığına aktarır. */
 function CameraBridge({ bridge }: { bridge: React.MutableRefObject<Bridge | null> }) {
+  useLocale();
   const { camera, controls } = useThree();
   bridge.current = { camera, controls };
   return null;
@@ -490,6 +500,7 @@ function mmPerPx(br: Bridge, h: number) {
 
 /** Seçilen geometrinin sınır kutusu + kenarlarında X/Y/Z ölçüleri */
 function AreaBox({ box }: { box: THREE.Box3 }) {
+  useLocale();
   const helper = useMemo(() => {
     const h = new THREE.Box3Helper(box, new THREE.Color(COLORS.area));
     const mat = h.material as THREE.LineBasicMaterial;
@@ -523,6 +534,7 @@ function AreaBox({ box }: { box: THREE.Box3 }) {
 type Drag = Rect & { crossing: boolean; w: number; h: number; vw: number; vh: number };
 
 function SelectionOverlay({ drag, ids, box, mesh }: { drag: Drag; ids: Set<string>; box: THREE.Box3 | null; mesh: MeshData }) {
+  useLocale();
   const unit = useUnit();
   const L = Math.min(drag.x0, drag.x1), T = Math.min(drag.y0, drag.y1);
   const W = Math.abs(drag.x1 - drag.x0), H = Math.abs(drag.y1 - drag.y0);
@@ -548,18 +560,18 @@ function SelectionOverlay({ drag, ids, box, mesh }: { drag: Drag; ids: Set<strin
           transform: `translate(${flipX ? "-100%" : "0"}, ${flipY ? "-100%" : "0"})`,
         }}
       >
-        <div className="sel-tip-mode">{drag.crossing ? "Kesişim seçimi · değenler" : "Pencere seçimi · tamamen içeridekiler"}</div>
+        <div className="sel-tip-mode">{drag.crossing ? tx("Kesişim seçimi · değenler") : tx("Pencere seçimi · tamamen içeridekiler")}</div>
         {s ? (
           <>
             <div>
               ΔX <b>{fmtLen(s.x, unit, false)}</b> · ΔY <b>{fmtLen(s.y, unit, false)}</b> · ΔZ <b>{fmtLen(s.z, unit, false)}</b> {UNITS[unit].label}
             </div>
             <div className="muted">
-              {ids.size} yüzey{featureSummary(mesh, ids)}
+              {ids.size}  {tx("yüzey")}{featureSummary(mesh, ids)}
             </div>
           </>
         ) : (
-          <div className="muted">Seçimde geometri yok</div>
+          <div className="muted">{tx("Seçimde geometri yok")}</div>
         )}
       </div>
     </>
@@ -586,19 +598,19 @@ const ICONS: Record<RegionTool, JSX.Element> = {
   polygon: <svg {...ICON_PROPS}><path d="M8 2l5.5 4-2 7h-7l-2-7z" /><circle cx="8" cy="2" r="0.6" fill="currentColor" /></svg>,
   faces: <svg {...ICON_PROPS}><rect x="2" y="2" width="8" height="8" strokeDasharray="2 1.6" /><rect x="6" y="6" width="8" height="8" /></svg>,
 };
-const TOOLS: { id: RegionTool; label: string; hint: string }[] = [
-  { id: "rect", label: "Dikdörtgen", hint: "Yüzeyin üzerinde sürükleyin" },
-  { id: "circle", label: "Daire", hint: "Merkezden dışa doğru sürükleyin" },
-  { id: "lasso", label: "Serbest", hint: "Basılı tutup şekli çizin" },
-  { id: "polygon", label: "Çokgen", hint: "Tıklayarak köşe ekleyin · ⌘/Ctrl bırak, çift tık veya Enter: kapat · ⌫ son köşe · Esc iptal" },
-  { id: "faces", label: "Yüzeyler", hint: "Bütün yüzeyleri seç · → pencere, ← kesişim · ⇧ ile ekle" },
-];
+const TOOLS = (): { id: RegionTool; label: string; hint: string }[] => ([
+  { id: "rect", label: tx("Dikdörtgen"), hint: tx("Yüzeyin üzerinde sürükleyin") },
+  { id: "circle", label: tx("Daire"), hint: tx("Merkezden dışa doğru sürükleyin") },
+  { id: "lasso", label: tx("Serbest"), hint: tx("Basılı tutup şekli çizin") },
+  { id: "polygon", label: tx("Çokgen"), hint: tx("Tıklayarak köşe ekleyin · ⌘/Ctrl bırak, çift tık veya Enter: kapat · ⌫ son köşe · Esc iptal") },
+  { id: "faces", label: tx("Yüzeyler"), hint: tx("Bütün yüzeyleri seç · → pencere, ← kesişim · ⇧ ile ekle") },
+]);
 const TOOL_KEY = "busproje.regionTool";
 
 function loadTool(): RegionTool {
   try {
     const t = localStorage.getItem(TOOL_KEY);
-    if (t && TOOLS.some((x) => x.id === t)) return t as RegionTool;
+    if (t && TOOLS().some((x) => x.id === t)) return t as RegionTool;
   } catch {
     /* depolama kullanılamıyor */
   }
@@ -613,11 +625,12 @@ function saveTool(t: RegionTool) {
 }
 
 function RegionToolbar({ tool, onTool, note }: { tool: RegionTool; onTool: (t: RegionTool) => void; note: string | null }) {
-  const cur = TOOLS.find((t) => t.id === tool)!;
+  useLocale();
+  const cur = TOOLS().find((t) => t.id === tool)!;
   return (
     <div className="region-toolbar">
       <div className="rt-tools">
-        {TOOLS.map((t) => (
+        {TOOLS().map((t) => (
           <button key={t.id} className={`rt-btn ${t.id === tool ? "on" : ""} ${t.id === "faces" ? "sep" : ""}`} title={t.hint} onClick={() => onTool(t.id)}>
             <span className="rt-ico">{ICONS[t.id]}</span>
             {t.label}
@@ -700,6 +713,7 @@ function screenShape(d: Draw): P2[] {
 }
 
 function DrawOverlay({ v }: { v: DrawView }) {
+  useLocale();
   const path = v.pts.map((p, i) => `${i ? "L" : "M"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ") + (v.closed ? " Z" : "");
   let flipX = v.tip[0] > v.vw - 230;
   let flipY = v.tip[1] > v.vh - 80;
@@ -722,7 +736,7 @@ function DrawOverlay({ v }: { v: DrawView }) {
         }}
       >
         <div className="sel-tip-mode">{v.sub}</div>
-        <div>{v.pending ? <span className="muted">Bölge hesaplanıyor…</span> : <b>{v.label}</b>}</div>
+        <div>{v.pending ? <span className="muted">{tx("Bölge hesaplanıyor…")}</span> : <b>{v.label}</b>}</div>
       </div>
     </>
   );
@@ -840,6 +854,7 @@ export default function ModelViewer({
   onSelectRegion: (id: string, add: boolean) => void;
   onCreateRegion: (req: RegionRequest) => Promise<unknown>;
 }) {
+  useLocale();
   const { center, size } = useMemo(() => {
     if (!mesh) return { center: new THREE.Vector3(0, 0, 0), size: 60 };
     const { min, max } = mesh.summary.bbox;
@@ -1044,7 +1059,7 @@ export default function ModelViewer({
         }
       } else {
         pts = d.screen.slice();
-        label = d.tool === "lasso" ? `${d.screen.length} nokta` : `${d.screen.length} köşe${d.screen.length >= 3 ? " · ⌘/Ctrl bırak: kapat" : ""}`;
+        label = d.tool === "lasso" ? tx("{0} nokta", {"0": d.screen.length}) : tx("{0} köşe{1}", {"0": d.screen.length, "1": d.screen.length >= 3 ? tx(" · ⌘/Ctrl bırak: kapat") : ""});
       }
       const poly = d.tool === "polygon";
       setDrawView({
@@ -1054,7 +1069,7 @@ export default function ModelViewer({
         first: poly && pts.length >= 3 ? pts[0] : null,
         dots: poly,
         label,
-        sub: `${a.faceId} · ${a.surface}${a.planar ? " · yüzey düzleminde" : " · bakış yönünde izdüşüm"}`,
+        sub: `${a.faceId} · ${enumLabel(a.surface)}${a.planar ? tx(" · yüzey düzleminde") : tx(" · bakış yönünde izdüşüm")}`,
         tip: d.cur,
         vw: b.width,
         vh: b.height,
@@ -1071,12 +1086,12 @@ export default function ModelViewer({
       if (a.planar) {
         if (d.tool === "circle") {
           const r = d.curWorld ? d.curWorld.distanceTo(a.point) : 0;
-          return r < 0.05 ? "Daire çok küçük." : { ...base, center: vec3(a.point), radius: r };
+          return r < 0.05 ? tx("Daire çok küçük.") : { ...base, center: vec3(a.point), radius: r };
         }
         let pts = planarShape(d);
         if (d.tool === "rect") {
           const dv = (d.curWorld ?? a.point).clone().sub(a.point);
-          if (Math.abs(dv.dot(a.u)) < 0.05 || Math.abs(dv.dot(a.v)) < 0.05) return "Dikdörtgen çok küçük.";
+          if (Math.abs(dv.dot(a.u)) < 0.05 || Math.abs(dv.dot(a.v)) < 0.05) return tx("Dikdörtgen çok küçük.");
         } else if (pts.length > 3) {
           // düzlemdeki (u, v) koordinatlarında seyrelt
           const o = a.point;
@@ -1087,14 +1102,14 @@ export default function ModelViewer({
           uv = s;
           pts = uv.map(([x, y]) => o.clone().addScaledVector(a.u, x).addScaledVector(a.v, y));
         }
-        return pts.length < 3 ? "Şekil için en az 3 nokta gerekli." : { ...base, points: pts.map(vec3) };
+        return pts.length < 3 ? tx("Şekil için en az 3 nokta gerekli.") : { ...base, points: pts.map(vec3) };
       }
       let s = screenShape(d);
       const [s0, s1] = [d.screen[0], d.cur];
-      if (d.tool === "rect" && (Math.abs(s1[0] - s0[0]) < 4 || Math.abs(s1[1] - s0[1]) < 4)) return "Dikdörtgen çok küçük.";
-      if (d.tool === "circle" && Math.hypot(s1[0] - s0[0], s1[1] - s0[1]) < 3) return "Daire çok küçük.";
+      if (d.tool === "rect" && (Math.abs(s1[0] - s0[0]) < 4 || Math.abs(s1[1] - s0[1]) < 4)) return tx("Dikdörtgen çok küçük.");
+      if (d.tool === "circle" && Math.hypot(s1[0] - s0[0], s1[1] - s0[1]) < 3) return tx("Daire çok küçük.");
       if (d.tool === "lasso" || d.tool === "polygon") s = rdp(s, 1.2);
-      if (s.length < 3) return "Şekil için en az 3 nokta gerekli.";
+      if (s.length < 3) return tx("Şekil için en az 3 nokta gerekli.");
       const rays = s.map(([x, y]) => {
         const r = rayAt(x, y);
         return [r.origin.x, r.origin.y, r.origin.z, r.direction.x, r.direction.y, r.direction.z];
@@ -1161,7 +1176,7 @@ export default function ModelViewer({
       }
       const anchor = pick(x, y);
       if (!anchor) {
-        flash("Çizime modelin bir yüzeyinin üzerinden başlayın.");
+        flash(tx("Çizime modelin bir yüzeyinin üzerinden başlayın."));
         return;
       }
       draw = {
@@ -1385,11 +1400,11 @@ export default function ModelViewer({
       {!drag && mesh && areaIds.size > 0 && (
         <div className="area-panel">
           <div className="area-head">
-            <b>▭ Alan seçimi</b>
+            <b>{tx("▭ Alan seçimi")}</b>
             <span className="muted">
-              {areaIds.size} yüzey{featureSummary(mesh, areaIds)}
+              {areaIds.size}  {tx("yüzey")}{featureSummary(mesh, areaIds)}
             </span>
-            <button className="icon-btn" title="Seçimi temizle (Esc)" onClick={clearArea}>
+            <button className="icon-btn" title={tx("Seçimi temizle (Esc)")} onClick={clearArea}>
               ✕
             </button>
           </div>
@@ -1401,7 +1416,7 @@ export default function ModelViewer({
               <span className="muted">{UNITS[unit].label}</span>
             </div>
           )}
-          <div className="muted small">⇧ ile ekle · Esc temizler</div>
+          <div className="muted small">{tx("⇧ ile ekle · Esc temizler")}</div>
         </div>
       )}
 

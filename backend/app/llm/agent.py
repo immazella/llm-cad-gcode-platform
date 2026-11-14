@@ -16,10 +16,22 @@ import uuid
 from typing import Any
 
 from .. import audit
+from ..i18n import tr, language
 from ..workspace import GCODE_TOOLS, MODEL_TOOLS, Workspace, run_tool
 from .offline import OfflineInterpreter
 from .prompts import SYSTEM_PROMPT
 from .tool_schemas import TOOL_SCHEMAS
+
+def response_system_prompt() -> str:
+    # Replace the legacy language policy, not the CAD/CAM instructions. Never store
+    # a language instruction in conversation history: each new turn can switch.
+    base = SYSTEM_PROMPT.replace("Kullanıcıyla Türkçe konuş (kullanıcı başka dilde yazarsa o dilde yanıt ver).", "")
+    instruction = "Respond in English" if language() == "en" else "Respond in Turkish"
+    return base + "\n\nRESPONSE LANGUAGE: " + instruction + (
+        " for this turn, regardless of the language of earlier messages or tool descriptions. "
+        "Explain validation findings in this language. Preserve G-code, identifiers, numeric values, "
+        "filenames, user-supplied names and quoted source content exactly. Do not rewrite prior conversation history.")
+
 
 MAX_TOOL_ROUNDS = 8
 MAX_HISTORY = 40
@@ -74,7 +86,9 @@ class Agent:
 
     def info(self) -> dict[str, Any]:
         return {"provider": self.provider, "model": self.model_name, "available": self.llm_available,
-                "configured_provider": self.configured_provider, "configured_model": self.configured_model}
+                "configured_provider": self.configured_provider, "configured_model": self.configured_model,
+                "model_label": tr("Kural tabanlı", "Rule-based") if self.provider == "offline" else self.model_name,
+                "status_label": tr("Çevrimdışı", "Offline") if self.provider == "offline" else tr("Çevrimiçi", "Online")}
 
     def reset(self) -> None:
         """Aktif sohbeti boşaltır (mesajlar + LLM geçmişi)."""
@@ -108,7 +122,7 @@ class Agent:
     @staticmethod
     def conv_summary(c: dict[str, Any], active: bool = False) -> dict[str, Any]:
         users = [m for m in c["messages"] if m.get("role") == "user"]
-        return {"id": c["id"], "title": c["title"] or "Yeni sohbet", "titled": bool(c["title"]), "created": c["created"],
+        return {"id": c["id"], "title": c["title"] or tr("Yeni sohbet", "New conversation"), "titled": bool(c["title"]), "created": c["created"],
                 "updated": c["updated"], "count": len(c["messages"]), "user_count": len(users), "active": active,
                 "preview": (users[-1]["text"][:80] if users else "")}
 
@@ -208,7 +222,8 @@ class Agent:
                 reply = self._offline.run(message, selection, lambda n, a: self._exec(n, a, actions), self.ws)
         except Exception as exc:  # API hatası: kullanıcıya göster
             error = f"{type(exc).__name__}: {exc}"
-            reply = f"LLM servisine erişilemedi ({error}). .env dosyasındaki API anahtarını ve model adını kontrol edin."
+            reply = tr(f"LLM servisine erişilemedi ({error}). .env dosyasındaki API anahtarını ve model adını kontrol edin.",
+                       f"Could not reach the LLM service ({error}). Check the API key and model name in .env.")
         c = self.active
         if not c["title"]:
             c["title"] = self.title_from(message)
@@ -237,7 +252,7 @@ class Agent:
         audit.safe_record({
             "kind": "chat", "client": "web", "provider": provider, "model": model_name,
             "conversation": {"id": self.active_id, "title": self.active.get("title")},
-            "system_prompt_sha256": audit.register_prompt(SYSTEM_PROMPT) if provider != "offline" else None,
+            "system_prompt_sha256": audit.register_prompt(response_system_prompt()) if provider != "offline" else None,
             "tools_sha256": audit.sha(json.dumps(TOOL_SCHEMAS, sort_keys=True, ensure_ascii=False))[:16],
             "state": {"model_id": m.id if m else None, "model_version": m.version if m else None,
                       "gcode_id": self.ws.current_gcode, "machine_profile": self.ws.config.profile_id},
@@ -262,7 +277,7 @@ class Agent:
         final_text = ""
         for i in range(MAX_TOOL_ROUNDS):
             t = audit.Timer()
-            resp = self._client.messages.create(model=self.model_name, max_tokens=2048, system=SYSTEM_PROMPT,
+            resp = self._client.messages.create(model=self.model_name, max_tokens=2048, system=response_system_prompt(),
                                                 tools=tools, messages=self.history)
             content = [b.model_dump(exclude_none=True) for b in resp.content]
             content = [{k: v for k, v in b.items() if k in ("type", "text", "id", "name", "input")} for b in content]
@@ -288,7 +303,7 @@ class Agent:
                                 "content": json.dumps(r, ensure_ascii=False, default=str)[:12000],
                                 **({"is_error": True} if r.get("ok") is False else {})})
             self.history.append({"role": "user", "content": results})
-        return final_text or "İşlem çok fazla adım gerektirdi; lütfen isteği parçalara bölün."
+        return final_text or tr("İşlem çok fazla adım gerektirdi; lütfen isteği parçalara bölün.", "This operation required too many steps; please split the request into smaller parts.")
 
     # ------------------------------------------------------------------ OpenAI uyumlu
     def _chat_openai(self, text: str, actions: list[dict]) -> str:
@@ -309,7 +324,7 @@ class Agent:
         for i in range(MAX_TOOL_ROUNDS):
             t = audit.Timer()
             resp = self._client.chat.completions.create(model=self.model_name, tools=tools,
-                                                        messages=[{"role": "system", "content": SYSTEM_PROMPT}, *self.history])
+                                                        messages=[{"role": "system", "content": response_system_prompt()}, *self.history])
             msg = resp.choices[0].message
             u = getattr(resp, "usage", None)
             self._rounds.append({
@@ -336,4 +351,4 @@ class Agent:
                     args = {}
                 r = self._exec(tc.function.name, args, actions)
                 self.history.append({"role": "tool", "tool_call_id": tc.id, "content": json.dumps(r, ensure_ascii=False, default=str)[:12000]})
-        return "İşlem çok fazla adım gerektirdi; lütfen isteği parçalara bölün."
+        return tr("İşlem çok fazla adım gerektirdi; lütfen isteği parçalara bölün.", "This operation required too many steps; please split the request into smaller parts.")

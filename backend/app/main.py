@@ -4,7 +4,7 @@ from __future__ import annotations
 import os
 import threading
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from dotenv import load_dotenv
 
@@ -13,6 +13,8 @@ load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 import logging  # noqa: E402
 
 from fastapi import Body, FastAPI, File, Form, HTTPException, Request, UploadFile  # noqa: E402
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
 from fastapi.concurrency import run_in_threadpool  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse  # noqa: E402
@@ -26,6 +28,9 @@ from .cam.profiles import get_profile, list_profiles  # noqa: E402
 from .cam.validator import rule_catalog  # noqa: E402
 from . import audit, session  # noqa: E402
 from .llm.agent import Agent  # noqa: E402
+from .i18n import locale_scope, error_message, schema_errors, tr, language  # noqa: E402
+from .presentation_i18n import present_profile
+from .validation_i18n import present_rules  # noqa: E402
 from .workspace import DATA_DIR, MODEL_TOOLS, TOOL_NAMES, ToolError, Workspace, run_tool  # noqa: E402
 
 app = FastAPI(title="LLM Tabanlı CAD / G-Code Platformu", version="0.2.0")
@@ -50,6 +55,23 @@ def _save_session() -> None:
             session.save(ws, agent, ui_state)
         except Exception:
             logging.getLogger(__name__).exception("Oturum kaydedilemedi")
+
+
+@app.middleware("http")
+async def request_language(request: Request, call_next):
+    with locale_scope(request.headers.get("Accept-Language")):
+        return await call_next(request)
+
+
+@app.exception_handler(RequestValidationError)
+async def localized_schema_error(request: Request, exc: RequestValidationError):
+    return JSONResponse(status_code=422, content=jsonable_encoder({"detail": schema_errors(exc.errors())}))
+
+
+@app.exception_handler(HTTPException)
+async def localized_http_error(request: Request, exc: HTTPException):
+    detail = error_message(exc.detail) if isinstance(exc.detail, str) else exc.detail
+    return JSONResponse(status_code=exc.status_code, content={"detail": detail}, headers=exc.headers)
 
 
 @app.middleware("http")
@@ -325,6 +347,7 @@ def export_step() -> FileResponse:
 # ---------------------------------------------------------------- sohbet
 class ChatReq(BaseModel):
     message: str
+    language: Literal["tr", "en"] | None = None
     selected_face_id: str | None = None
     selected_region_id: str | None = None
     selected_ids: list[str] | None = None  # çoklu seçim: yüzey (f3) ve bölge (r1) kimlikleri, seçim sırasıyla
@@ -346,7 +369,7 @@ def _resolve(ids: list[str]) -> tuple[list[dict[str, Any]], list[str]]:
 
 @app.post("/api/chat")
 def chat(req: ChatReq) -> dict[str, Any]:
-    with lock:
+    with locale_scope(req.language or language()), lock:
         if req.conversation_id and req.conversation_id in agent.conversations and req.conversation_id != agent.active_id:
             agent.activate(req.conversation_id)
         selection: dict | list | None = None
@@ -354,7 +377,7 @@ def chat(req: ChatReq) -> dict[str, Any]:
         ids = list(req.selected_ids or []) or [i for i in (req.selected_region_id or req.selected_face_id,) if i]
         if ids and ws.model:
             if req.model_version is not None and req.model_version != ws.model.version:
-                note = "Seçim eski model sürümüne ait olduğu için yok sayıldı."
+                note = tr("Seçim eski model sürümüne ait olduğu için yok sayıldı.", "Selection ignored because it belongs to an older model version.")
             else:
                 sels, notes = _resolve(ids)
                 note = " ".join(notes) or None
@@ -493,7 +516,7 @@ def put_config(cfg: MachiningConfig) -> dict[str, Any]:
 # ---------------------------------------------------------------- makine profilleri
 @app.get("/api/profiles")
 def profiles() -> list[dict[str, Any]]:
-    return [p.model_dump() for p in list_profiles()]
+    return [present_profile(p.model_dump()) for p in list_profiles()]
 
 
 class ProfileReq(BaseModel):
@@ -521,12 +544,12 @@ def save_machine(req: MachineReq) -> dict[str, Any]:
         try:
             p = save_profile(req.profile)
         except ValidationError as exc:
-            raise HTTPException(400, "; ".join(f"{'.'.join(map(str, e['loc']))}: {e['msg']}" for e in exc.errors()[:4]))
+            raise HTTPException(400, "; ".join(f"{'.'.join(map(str, e['loc']))}: {e['msg']}" for e in schema_errors(exc.errors())[:4]))
         except (ValueError, KeyError) as exc:
             raise HTTPException(400, str(exc.args[0] if exc.args else exc))
         if req.activate or ws.config.profile_id == p.id:
             ws.set_machine_profile(p.id)  # aynı makine: yalnızca yeniden doğrular, kurulum korunur
-        return {"profile": p.model_dump(), "profiles": [x.model_dump() for x in list_profiles()], "config": ws.config.model_dump()}
+        return {"profile": present_profile(p.model_dump()), "profiles": [present_profile(x.model_dump()) for x in list_profiles()], "config": ws.config.model_dump()}
 
 
 @app.delete("/api/profiles/{profile_id}")
@@ -542,7 +565,7 @@ def delete_machine(profile_id: str) -> dict[str, Any]:
             raise HTTPException(400, str(exc))
         if ws.config.profile_id == profile_id:
             ws.set_machine_profile(DEFAULT_PROFILE_ID)
-        return {"profiles": [x.model_dump() for x in list_profiles()], "config": ws.config.model_dump()}
+        return {"profiles": [present_profile(x.model_dump()) for x in list_profiles()], "config": ws.config.model_dump()}
 
 
 @app.get("/api/materials")
@@ -566,7 +589,7 @@ def cutting_recommend(req: RecommendReq) -> dict[str, Any]:
 
 @app.get("/api/rules")
 def rules() -> list[dict[str, Any]]:
-    return rule_catalog()
+    return present_rules(rule_catalog())
 
 
 # ---------------------------------------------------------------- G-code

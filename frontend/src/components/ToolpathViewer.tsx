@@ -1,3 +1,4 @@
+import { tx, useLocale } from "../i18n";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
@@ -78,6 +79,7 @@ function Animated({
   toolDiameter: number;
   onLine: (l: number) => void;
 }) {
+  useLocale();
   const toolRef = useRef<THREE.Group>(null);
   const lastUi = useRef(0);
   const lastLine = useRef(-1);
@@ -151,6 +153,7 @@ function Animated({
 
 /** Modeli G-code iş koordinatlarına taşınmış yarı saydam hayalet olarak çizer. */
 function Ghost({ mesh, origin }: { mesh: MeshData; origin?: Vec3 | null }) {
+  useLocale();
   const { min, max } = mesh.summary.bbox;
   // iş sıfırı: üretimde kaydedilen model koordinatı; eski / yüklenen programlarda parça üst yüzey merkezi
   const o = origin ?? [(min[0] + max[0]) / 2, (min[1] + max[1]) / 2, max[2]];
@@ -193,6 +196,7 @@ export default function ToolpathViewer({
   /** Atölye sekmesinden: simülasyonu bu satırın başladığı ana getir */
   seek?: { line: number; n: number } | null;
 }) {
+  useLocale();
   const flat = useMemo(() => (toolpath ? flatten(toolpath) : null), [toolpath]);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(8);
@@ -229,7 +233,7 @@ export default function ToolpathViewer({
   const [grid, setGrid] = useState<GridInfo | null>(null);
 
   if (!toolpath || !flat) {
-    return <div className="empty-state">Takım yolunu görmek için önce G-code üretin veya yükleyin.</div>;
+    return <div className="empty-state">{tx("Takım yolunu görmek için önce G-code üretin veya yükleyin.")}</div>;
   }
   const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 
@@ -251,7 +255,7 @@ export default function ToolpathViewer({
             setPlaying((p) => !p);
           }}
         >
-          {playing ? "❚❚ Duraklat" : simTime.current > 0 && simTime.current < flat.total ? "▶ Devam" : "▶ Başlat"}
+          {playing ? tx("❚❚ Duraklat") : simTime.current > 0 && simTime.current < flat.total ? tx("▶ Devam") : tx("▶ Başlat")}
         </button>
         <button
           className="btn"
@@ -261,8 +265,7 @@ export default function ToolpathViewer({
             setPlaying(false);
           }}
         >
-          ⟲ Başa sar
-        </button>
+           {tx("⟲ Başa sar")} </button>
         <input
           className="scrub"
           type="range"
@@ -279,8 +282,7 @@ export default function ToolpathViewer({
           {fmt(uiTime)} / {fmt(flat.total)}
         </span>
         <label className="small">
-          Hız
-          <select value={speed} onChange={(e) => setSpeed(Number(e.target.value))}>
+           {tx("Hız")} <select value={speed} onChange={(e) => setSpeed(Number(e.target.value))}>
             {[1, 2, 4, 8, 16, 32, 64].map((s) => (
               <option key={s} value={s}>
                 {s}×
@@ -289,10 +291,10 @@ export default function ToolpathViewer({
           </select>
         </label>
         <div className="legend small">
-          <span><i style={{ background: "#f28c33" }} /> G0 hızlı</span>
-          <span><i style={{ background: "#40ccf2" }} /> G1 kesme</span>
-          <span><i style={{ background: "#73f299" }} /> G2/G3 yay</span>
-          <span><i style={{ background: "#f259bf" }} /> delme</span>
+          <span><i style={{ background: "#f28c33" }} />  {tx("G0 hızlı")}</span>
+          <span><i style={{ background: "#40ccf2" }} />  {tx("G1 kesme")}</span>
+          <span><i style={{ background: "#73f299" }} />  {tx("G2/G3 yay")}</span>
+          <span><i style={{ background: "#f259bf" }} />  {tx("delme")}</span>
         </div>
       </div>
     </div>

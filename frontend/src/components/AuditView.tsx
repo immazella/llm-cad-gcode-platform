@@ -1,3 +1,4 @@
+import { tx, useLocale, getLocale } from "../i18n";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api";
 import type { AuditEntry, AuditList, AuditSummary } from "../types";
@@ -9,54 +10,55 @@ import Markdown from "./Markdown";
  */
 
 const PAGE = 100;
-const KINDS: [string, string][] = [
-  ["", "Tümü"],
-  ["chat", "Web sohbeti"],
+const KINDS = (): [string, string][] => ([
+  ["", tx("Tümü")],
+  ["chat", tx("Web sohbeti")],
   ["mcp_tool", "MCP"],
-];
+]);
 
 const fmtTime = (iso: string | null) => {
   if (!iso) return "—";
   const d = new Date(iso);
   const p = (n: number) => String(n).padStart(2, "0");
   const today = new Date().toDateString() === d.toDateString();
-  return `${today ? "bugün" : `${p(d.getDate())}.${p(d.getMonth() + 1)}`} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+  return `${today ? tx("bugün") : `${p(d.getDate())}.${p(d.getMonth() + 1)}`} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
 };
 /** Liste önizlemesinde markdown işaretlerini at */
 const plain = (s: string) => s.replace(/\*\*|`|^#+\s|\n+/g, (m) => (m.startsWith("\n") ? " · " : ""));
-const fmtMs = (ms: number | null | undefined) => (ms == null ? "—" : ms < 1000 ? `${ms} ms` : `${(ms / 1000).toFixed(1)} sn`);
+const fmtMs = (ms: number | null | undefined) => (ms == null ? "—" : ms < 1000 ? `${ms} ms` : tx("{0} sn", {"0": (ms / 1000).toFixed(1)}));
 const json = (v: unknown) => JSON.stringify(v, null, 2);
 
 function Detail({ id, onError }: { id: string; onError: (m: string) => void }) {
+  useLocale();
   const [e, setE] = useState<AuditEntry | null>(null);
   useEffect(() => {
     api.auditEntry(id).then(setE, (err: Error) => onError(err.message));
   }, [id, onError]);
-  if (!e) return <div className="audit-detail muted small">Yükleniyor…</div>;
+  if (!e) return <div className="audit-detail muted small">{tx("Yükleniyor…")}</div>;
   return (
     <div className="audit-detail">
       <section>
-        <h5>Girdi</h5>
+        <h5>{tx("Girdi")}</h5>
         <div className="audit-msg">{e.input?.message || <span className="muted">—</span>}</div>
         {e.input?.selection && e.input.selection.length > 0 && (
           <div className="small">
-            Seçim: {e.input.selection.map((s) => <span key={s} className="md-entity">{s}</span>)}
+             {tx("Seçim:")} {e.input.selection.map((s) => <span key={s} className="md-entity">{s}</span>)}
           </div>
         )}
         {e.input?.context && (
           <details>
-            <summary className="small">LLM'e giden bağlam ([BAĞLAM] bloğu)</summary>
+            <summary className="small">{tx("LLM'e giden bağlam ([BAĞLAM] bloğu)")}</summary>
             <pre className="audit-pre">{e.input.context}</pre>
           </details>
         )}
         <div className="audit-meta small mono">
-          durum: model {e.state?.model_id ?? "—"} v{e.state?.model_version ?? "—"} · G-code {e.state?.gcode_id ?? "—"} · makine {e.state?.machine_profile ?? "—"}
+           {tx("durum: model")} {e.state?.model_id ?? "—"} v{e.state?.model_version ?? "—"} · G-code {e.state?.gcode_id ?? "—"}  {tx("· makine")} {e.state?.machine_profile ?? "—"}
         </div>
       </section>
 
       {e.rounds && e.rounds.length > 0 && (
         <section>
-          <h5>LLM turları ({e.rounds.length})</h5>
+          <h5>{tx("LLM turları (")}{e.rounds.length})</h5>
           {e.rounds.map((r) => (
             <div key={r.round} className="audit-round">
               <div className="audit-round-head mono small">
@@ -67,7 +69,7 @@ function Detail({ id, onError }: { id: string; onError: (m: string) => void }) {
               {r.text && <div className="audit-round-text">{r.text}</div>}
               {r.reasoning && (
                 <details>
-                  <summary className="small">Akıl yürütme (reasoning)</summary>
+                  <summary className="small">{tx("Akıl yürütme (reasoning)")}</summary>
                   <pre className="audit-pre">{r.reasoning}</pre>
                 </details>
               )}
@@ -86,7 +88,7 @@ function Detail({ id, onError }: { id: string; onError: (m: string) => void }) {
 
       {e.tool_calls && e.tool_calls.length > 0 && (
         <section>
-          <h5>Çalıştırılan araçlar ({e.tool_calls.length})</h5>
+          <h5>{tx("Çalıştırılan araçlar (")}{e.tool_calls.length})</h5>
           {e.tool_calls.map((c, i) => (
             <details key={i} className={`audit-call ${c.ok ? "ok" : "fail"}`}>
               <summary className="mono small">
@@ -103,7 +105,7 @@ function Detail({ id, onError }: { id: string; onError: (m: string) => void }) {
       )}
 
       <section>
-        <h5>Çıktı</h5>
+        <h5>{tx("Çıktı")}</h5>
         {e.output?.error && <div className="shop-alert error small">{e.output.error}</div>}
         {e.output?.reply ? <Markdown text={e.output.reply} /> : <div className="muted small">—</div>}
       </section>
@@ -111,20 +113,20 @@ function Detail({ id, onError }: { id: string; onError: (m: string) => void }) {
       <section className="audit-integrity mono small">
         <div>seq {e.seq} · id {e.id} · {e.ts}</div>
         <div>hash {e.hash}</div>
-        <div>önceki {e.prev_hash}</div>
-        {e.system_prompt_sha256 && <div>sistem istemi sha256 {e.system_prompt_sha256}</div>}
-        {e.tools_sha256 && <div>araç şemaları sha256 {e.tools_sha256}…</div>}
+        <div>{tx("önceki")} {e.prev_hash}</div>
+        {e.system_prompt_sha256 && <div>{tx("sistem istemi sha256")} {e.system_prompt_sha256}</div>}
+        {e.tools_sha256 && <div>{tx("araç şemaları sha256")} {e.tools_sha256}…</div>}
       </section>
       <div className="btn-row">
         <button className="btn small" onClick={() => void api.auditDownload([e.id]).catch((err: Error) => onError(err.message))}>
-          Bu kaydı indir (JSON)
-        </button>
+           {tx("Bu kaydı indir (JSON)")} </button>
       </div>
     </div>
   );
 }
 
 export default function AuditView({ refreshKey, onError }: { refreshKey: number; onError: (m: string) => void }) {
+  useLocale();
   const [q, setQ] = useState("");
   const [qDeb, setQDeb] = useState("");
   const [kind, setKind] = useState("");
@@ -186,29 +188,28 @@ export default function AuditView({ refreshKey, onError }: { refreshKey: number;
     <div className="audit-view">
       <header className="audit-head">
         <div>
-          <h3>LLM audit kayıtları</h3>
+          <h3>{tx("LLM audit kayıtları")}</h3>
           <div className="muted small">
-            Web sohbetinde ve MCP istemcilerinde LLM'in aldığı girdi, bağlam, her tur, çalıştırdığı araçlar ve cevabı. Kayıtlar yalnızca eklenir; silinemez.
-          </div>
+             {tx("Web sohbetinde ve MCP istemcilerinde LLM'in aldığı girdi, bağlam, her tur, çalıştırdığı araçlar ve cevabı. Kayıtlar yalnızca eklenir; silinemez.")} </div>
         </div>
         {chain && (
-          <div className={`chain-badge ${chain.ok ? "ok" : "bad"}`} title={chain.ok ? `Son hash: ${chain.last_hash}` : chain.message}>
-            {chain.ok ? "✓ Zincir sağlam" : `✕ Zincir ${chain.broken_at_index}. kayıtta kırık`}
-            <span className="muted"> · {chain.count} kayıt</span>
+          <div className={`chain-badge ${chain.ok ? "ok" : "bad"}`} title={chain.ok ? tx("Son hash: {0}", {"0": chain.last_hash}) : chain.message}>
+            {chain.ok ? tx("✓ Zincir sağlam") : tx("✕ Zincir {0}. kayıtta kırık", {"0": chain.broken_at_index})}
+            <span className="muted"> · {chain.count}  {tx("kayıt")}</span>
           </div>
         )}
       </header>
 
       <div className="audit-controls">
-        <input className="audit-search" placeholder="Kayıtlarda ara (mesaj, araç, cevap, hata…)" value={q} onChange={(e) => setQ(e.target.value)} />
+        <input className="audit-search" placeholder={tx("Kayıtlarda ara (mesaj, araç, cevap, hata…)")} value={q} onChange={(e) => setQ(e.target.value)} />
         <div className="seg">
-          {KINDS.map(([k, l]) => (
+          {KINDS().map(([k, l]) => (
             <button key={k} className={kind === k ? "on" : ""} onClick={() => setKind(k)}>
               {l}
             </button>
           ))}
         </div>
-        <button className="btn small" onClick={() => void load(0)} disabled={busy} title="Yenile">
+        <button className="btn small" onClick={() => void load(0)} disabled={busy} title={tx("Yenile")}>
           ⟳
         </button>
       </div>
@@ -227,7 +228,7 @@ export default function AuditView({ refreshKey, onError }: { refreshKey: number;
               })
             }
           />
-          <span>Görünenlerin hepsi</span>
+          <span>{tx("Görünenlerin hepsi")}</span>
         </label>
         {filtered && data && data.total > rows.length && (
           <button
@@ -241,48 +242,45 @@ export default function AuditView({ refreshKey, onError }: { refreshKey: number;
               }
             }}
           >
-            Filtreye uyan {data.total} kaydı seç
-          </button>
+             {tx("Filtreye uyan")} {data.total}  {tx("kaydı seç")} </button>
         )}
-        <span className="audit-picked small">{picked.size} seçili</span>
+        <span className="audit-picked small">{picked.size}  {tx("seçili")}</span>
         {picked.size > 0 && (
           <button className="btn ghost small" onClick={() => setPicked(new Set())}>
-            Seçimi temizle
-          </button>
+             {tx("Seçimi temizle")} </button>
         )}
         <span className="grow" />
         <button className="btn small primary" disabled={picked.size === 0} onClick={() => void download([...picked])}>
-          Seçilenleri indir ({picked.size})
+           {tx("Seçilenleri indir (")}{picked.size})
         </button>
-        <button className="btn small" disabled={!data?.all} onClick={() => void download(null)} title="Bütün kayıtlar, filtreden bağımsız">
-          Tümünü indir (JSON)
-        </button>
+        <button className="btn small" disabled={!data?.all} onClick={() => void download(null)} title={tx("Bütün kayıtlar, filtreden bağımsız")}>
+           {tx("Tümünü indir (JSON)")} </button>
       </div>
 
       <div className="audit-table">
         <div className="audit-row audit-th small">
           <span />
           <span>#</span>
-          <span>Zaman</span>
-          <span>Kaynak</span>
-          <span>Girdi / cevap</span>
-          <span>Araç</span>
-          <span>Süre</span>
+          <span>{tx("Zaman")}</span>
+          <span>{tx("Kaynak")}</span>
+          <span>{tx("Girdi / cevap")}</span>
+          <span>{tx("Araç")}</span>
+          <span>{tx("Süre")}</span>
           <span>Token</span>
         </div>
         {rows.length === 0 && !busy && (
-          <div className="muted pad small">{filtered ? "Filtreye uyan kayıt yok." : "Henüz kayıt yok. Sohbette bir istek gönderdiğinde burada görünecek."}</div>
+          <div className="muted pad small">{filtered ? tx("Filtreye uyan kayıt yok.") : tx("Henüz kayıt yok. Sohbette bir istek gönderdiğinde burada görünecek.")}</div>
         )}
         {rows.map((r) => (
           <div key={r.id} className={`audit-item ${open === r.id ? "open" : ""} ${picked.has(r.id) ? "picked" : ""}`}>
             <div className="audit-row" onClick={() => setOpen((o) => (o === r.id ? null : r.id))}>
               <span onClick={(e) => e.stopPropagation()}>
-                <input type="checkbox" checked={picked.has(r.id)} onChange={() => toggle(r.id)} aria-label={`Kayıt ${r.seq} seç`} />
+                <input type="checkbox" checked={picked.has(r.id)} onChange={() => toggle(r.id)} aria-label={tx("Kayıt {0} seç", {"0": r.seq})} />
               </span>
               <span className="mono muted">{r.seq}</span>
-              <span className="mono small" title={new Date(r.ts).toLocaleString("tr-TR")}>{fmtTime(r.ts)}</span>
+              <span className="mono small" title={new Date(r.ts).toLocaleString(getLocale() === "en" ? "en-US" : "tr-TR")}>{fmtTime(r.ts)}</span>
               <span>
-                <span className={`kind-chip ${r.kind}`}>{r.kind === "chat" ? "sohbet" : r.kind === "mcp_tool" ? "MCP" : r.kind}</span>
+                <span className={`kind-chip ${r.kind}`}>{r.kind === "chat" ? tx("sohbet") : r.kind === "mcp_tool" ? "MCP" : r.kind}</span>
                 <div className="muted tinyline">{r.kind === "chat" ? `${r.provider} · ${r.model}` : r.client}</div>
               </span>
               <span className="audit-text">
@@ -302,7 +300,7 @@ export default function AuditView({ refreshKey, onError }: { refreshKey: number;
         {data && rows.length < data.total && (
           <div className="pad">
             <button className="btn small" disabled={busy} onClick={() => void load(rows.length)}>
-              Daha fazla yükle ({rows.length} / {data.total})
+               {tx("Daha fazla yükle (")}{rows.length} / {data.total})
             </button>
           </div>
         )}

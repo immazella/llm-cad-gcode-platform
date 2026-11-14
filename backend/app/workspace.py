@@ -24,6 +24,11 @@ class ToolError(Exception):
     pass
 
 
+from .i18n import tr, error_message
+from .validation_i18n import present_report
+from .presentation_i18n import present_profile, present_materials, present_cutting, present_warning
+
+
 class Workspace:
     def __init__(self) -> None:
         self.model: CadModel | None = None
@@ -43,7 +48,7 @@ class Workspace:
             "model": self.model.summary() if self.model else None,
             "gcode": self.gcode_meta(g) if g else None,
             "config": self.config.model_dump(),
-            "profile": self.config.profile.model_dump(),
+            "profile": present_profile(self.config.profile.model_dump()),
         }
 
     def context(self, selection: dict[str, Any] | list[dict[str, Any]] | None = None) -> str:
@@ -63,22 +68,27 @@ class Workspace:
 
     @staticmethod
     def gcode_meta(g: dict[str, Any]) -> dict[str, Any]:
-        return {k: g.get(k) for k in ("gcode_id", "source", "model_id", "model_version", "plan", "warnings", "validation", "line_count",
+        meta = {k: g.get(k) for k in ("gcode_id", "source", "model_id", "model_version", "plan", "warnings", "validation", "line_count",
                                       "stale", "generated_for", "post", "work_origin_model", "stock_model", "setup", "cutting_mode")}
+        return {**meta, "validation": present_report(meta["validation"]),
+                "warnings": [present_warning(w) for w in (meta["warnings"] or [])]}
 
     # ------------------------------------------------------------------ model işlemleri
     def create_box(self, length: float, width: float, height: float, name: str | None = None) -> dict:
-        self.model = CadModel(name or f"Kutu {length:g}x{width:g}x{height:g}", {"type": "box", "length": float(length), "width": float(width), "height": float(height)})
-        return {"ok": True, "message": "Kutu/plaka oluşturuldu.", "model": self.model.summary()}
+        # Default name is chosen once, in the creation language; it is stored data afterwards.
+        default = tr(f"Kutu {length:g}x{width:g}x{height:g}", f"Box {length:g}x{width:g}x{height:g}")
+        self.model = CadModel(name or default, {"type": "box", "length": float(length), "width": float(width), "height": float(height)})
+        return {"ok": True, "message": tr("Kutu/plaka oluşturuldu.", "Box/plate created."), "model": self.model.summary()}
 
     def create_cylinder(self, radius: float, height: float, name: str | None = None) -> dict:
-        self.model = CadModel(name or f"Silindir R{radius:g} H{height:g}", {"type": "cylinder", "radius": float(radius), "height": float(height)})
-        return {"ok": True, "message": "Silindir oluşturuldu.", "model": self.model.summary()}
+        default = tr(f"Silindir R{radius:g} H{height:g}", f"Cylinder R{radius:g} H{height:g}")
+        self.model = CadModel(name or default, {"type": "cylinder", "radius": float(radius), "height": float(height)})
+        return {"ok": True, "message": tr("Silindir oluşturuldu.", "Cylinder created."), "model": self.model.summary()}
 
     def load_step_file(self, path: Path, name: str) -> dict:
         self.model = load_step(path, name)
         s = self.model.summary()
-        return {"ok": True, "message": f"STEP yüklendi: {len(s['holes'])} delik, {len(s['pockets'])} cep tanındı.", "model": s}
+        return {"ok": True, "message": tr(f"STEP yüklendi: {len(s['holes'])} delik, {len(s['pockets'])} cep tanındı.", f"STEP loaded: recognized {len(s['holes'])} holes and {len(s['pockets'])} pockets."), "model": s}
 
     def add_hole(self, diameter: float, x: float = 0, y: float = 0, depth: float | None = None, face_id: str | None = None) -> dict:
         m = self.require_model()
@@ -258,7 +268,7 @@ class Workspace:
         res = generate_gcode(m, cfg)
         rec = self._store_gcode(res["text"], "generated", res)
         return {"ok": True, "gcode_id": rec["gcode_id"], "profile": self.config.profile.summary(), "post": rec["post"],
-                "plan": rec["plan"], "warnings": rec["warnings"], "setup": rec["setup"], "cutting_mode": rec["cutting_mode"],
+                "plan": rec["plan"], "warnings": [present_warning(w) for w in rec["warnings"]], "setup": rec["setup"], "cutting_mode": rec["cutting_mode"],
                 "line_count": rec["line_count"], "validation_summary": {"valid": rec["validation"]["valid"], "counts": rec["validation"]["counts"],
                                                                        "estimated_time_s": rec["validation"]["stats"]["estimated_time_s"]}}
 
@@ -285,8 +295,10 @@ class Workspace:
         out = {"gcode_id": gid, "profile": v["profile"], "valid": v["valid"], "counts": v["counts"], "levels": v["levels"],
                "issues": v["issues"][:25], "stats": v["stats"], "not_checked": v["not_checked"]}
         if rec.get("generated_for") and rec["generated_for"] != self.config.profile_id:
-            out["note"] = (f"Bu program '{rec['generated_for']}' profili için üretildi ama şu an '{self.config.profile_id}' profiline göre doğrulandı. "
-                           "Bu makine için yeniden üretmek gerekebilir.")
+            out["note"] = tr(f"Bu program '{rec['generated_for']}' profili için üretildi ama şu an '{self.config.profile_id}' profiline göre doğrulandı. "
+                             "Bu makine için yeniden üretmek gerekebilir.",
+                             f"This program was generated for '{rec['generated_for']}' but validated against '{self.config.profile_id}'. "
+                             "It may need to be regenerated for this machine.")
         return out
 
     def set_tool_length(self, tool_number: int, length: float | None) -> dict:
@@ -301,7 +313,8 @@ class Workspace:
         if v is not None:
             out["revalidation"] = {"valid": v["valid"], "counts": v["counts"]}
         if not self.config.profile.requires_tool_length_comp:
-            out["note"] = f"{self.config.profile.name} G43 H kullanmaz; takım boyu bu makinede doğrulamayı etkilemez."
+            out["note"] = tr(f"{self.config.profile.name} G43 H kullanmaz; takım boyu bu makinede doğrulamayı etkilemez.",
+                             f"{self.config.profile.name} does not use G43 H; tool length does not affect validation on this machine.")
         return out
 
     # ------------------------------------------------------------------ takım kütüphanesi / kurulum / operasyonlar
@@ -320,7 +333,7 @@ class Workspace:
     def list_materials(self) -> dict:
         from .cam.materials import NOTE, list_materials
 
-        return {"active": self.config.setup.material, "materials": list_materials(), "note": NOTE}
+        return present_materials({"active": self.config.setup.material, "materials": list_materials(), "note": NOTE})
 
     def recommend_cutting(self, tool_number: int | None = None, tool_type: str | None = None, diameter: float | None = None,
                           flutes: int | None = None, tool_material: str | None = None, material: str | None = None) -> dict:
@@ -337,7 +350,7 @@ class Workspace:
         mid = self._material_id(material) if material else self.config.setup.material
         rec = recommend(ttype, float(d), int(flutes or (t.flutes if t else 2)), tool_material or (t.tool_material if t else "carbide"),
                         mid, max_rpm=p.max_spindle, min_rpm=p.min_spindle, max_feed=p.max_feed)
-        return {"ok": True, "tool": t.model_dump() if t else None, "machine": p.name, **rec}
+        return present_cutting({"ok": True, "tool": t.model_dump() if t else None, "machine": p.name, **rec})
 
     def upsert_tool(self, number: int, **fields: Any) -> dict:
         from .cam.config import Tool
@@ -396,7 +409,8 @@ class Workspace:
         out: dict[str, Any] = {"ok": True, "setup": self.config.setup.model_dump(), "cutting_mode": self.config.cutting_mode,
                                "coolant": self.config.cutting.coolant}
         if self.current_gcode and self.gcodes[self.current_gcode]["source"] == "generated":
-            out["note"] = "Kurulum değişti: mevcut G-code eski kuruluma göre üretildi, generate_gcode ile yeniden üretin."
+            out["note"] = tr("Kurulum değişti: mevcut G-code eski kuruluma göre üretildi, generate_gcode ile yeniden üretin.",
+                             "Setup changed: the current G-code was generated for the previous setup; regenerate it with generate_gcode.")
         return out
 
     def set_operation(self, op: str, **fields: Any) -> dict:
@@ -453,7 +467,7 @@ class Workspace:
     # ------------------------------------------------------------------ makine profili
     def list_machine_profiles(self) -> dict:
         return {"active": self.config.profile_id,
-                "profiles": [{**p.summary(), "description": p.description, "tool_changer": p.tool_changer,
+                "profiles": [{**p.summary(), "description": present_profile(p.model_dump())["description"], "tool_changer": p.tool_changer,
                               "canned_cycles": p.canned_cycles, "max_spindle": p.max_spindle, "max_feed": p.max_feed,
                               "travel": {a: [t.min, t.max] for a, t in p.travel.items()}} for p in list_profiles()]}
 
@@ -476,7 +490,8 @@ class Workspace:
             rec = self.gcodes[self.current_gcode]
             out["revalidation"] = {"gcode_id": rec["gcode_id"], "valid": v["valid"], "counts": v["counts"]}
             if rec.get("generated_for") and rec["generated_for"] != prof.id:
-                out["note"] = f"Mevcut program '{rec['generated_for']}' profili için üretilmişti; bu makine için G-code'u yeniden üretin."
+                out["note"] = tr(f"Mevcut program '{rec['generated_for']}' profili için üretilmişti; bu makine için G-code'u yeniden üretin.",
+                                 f"The current program was generated for profile '{rec['generated_for']}'; regenerate G-code for this machine.")
         return out
 
     def mark_stale(self) -> None:
@@ -497,15 +512,17 @@ CONFIG_TOOLS = {"set_machine_profile", "set_tool_length", "upsert_tool", "delete
 def run_tool(ws: Workspace, name: str, args: dict[str, Any]) -> dict[str, Any]:
     fn: Callable | None = getattr(ws, name, None) if name in TOOL_NAMES else None
     if fn is None:
-        return {"ok": False, "error": f"Bilinmeyen araç: {name}"}
+        return {"ok": False, "error": error_message(f"Bilinmeyen araç: {name}")}
     try:
-        return fn(**(args or {}))
+        result = fn(**(args or {}))
+        # The validator stores canonical records; localize only this tool response.
+        return present_report(result) if name == "validate_gcode" else result
     except (CadError, ToolError) as exc:
-        return {"ok": False, "error": str(exc)}
+        return {"ok": False, "error": error_message(str(exc))}
     except TypeError as exc:
-        return {"ok": False, "error": f"Geçersiz parametre: {exc}"}
+        return {"ok": False, "error": error_message(f"Geçersiz parametre: {exc}")}
     except Exception as exc:  # beklenmeyen
-        return {"ok": False, "error": f"İşlem başarısız: {type(exc).__name__}: {exc}"}
+        return {"ok": False, "error": error_message(f"İşlem başarısız: {type(exc).__name__}: {exc}")}
 
 
 from .llm.tool_schemas import TOOL_SCHEMAS  # noqa: E402

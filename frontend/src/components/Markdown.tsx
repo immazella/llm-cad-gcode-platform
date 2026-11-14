@@ -1,3 +1,4 @@
+import { tx, useLocale } from "../i18n";
 import { Fragment, type ReactNode } from "react";
 
 /**
@@ -14,7 +15,7 @@ export interface MdHandlers {
 
 const ENTITY = String.raw`\b(?:hole|pocket|engrave|fillet|chamfer)_\d+\b|\b[rf]\d+\b`;
 const CODE = String.raw`\b(?:PS|OT|SV|SP)\d{4}\b|\berror:\d+\b|\bALARM:\d+\b|\b[GMTHD]\d{1,3}(?:\.\d)?\b|Ø\s?\d+(?:[.,]\d+)?`;
-const LINE = String.raw`\b(\d{1,5})\.\s?satır\w*|\bsatır\s(\d{1,5})\b|\bN(\d{1,5})\b`;
+const LINE = String.raw`\b(\d{1,5})\.\s?satır\w*|\b(?:satır|[Ll]ine)\s(\d{1,5})\b|\bN(\d{1,5})\b`;
 const INLINE = new RegExp(
   String.raw`(\x60[^\x60]+\x60)|(\*\*[^*]+\*\*)|(\*[^*\s][^*]*\*)|(\[[^\]]+\]\((?:https?:\/\/|\/)[^)\s]+\))|(${LINE})|(${ENTITY})|(${CODE})`,
   "g",
@@ -43,7 +44,7 @@ function inline(text: string, h: MdHandlers, key = ""): ReactNode[] {
       const n = Number(m[6] ?? m[7] ?? m[8]);
       out.push(
         h.onLine ? (
-          <button key={id} className="md-line" onClick={() => h.onLine!(n)} title={`${n}. satırı takım yolunda göster`}>
+          <button key={id} className="md-line" onClick={() => h.onLine!(n)} title={tx("{0}. satırı takım yolunda göster", {"0": n})}>
             {t}
           </button>
         ) : (
@@ -53,7 +54,7 @@ function inline(text: string, h: MdHandlers, key = ""): ReactNode[] {
     } else if (m[9]) {
       out.push(
         h.onEntity ? (
-          <button key={id} className="md-entity" onClick={() => h.onEntity!(t)} title={`${t} seç`}>
+          <button key={id} className="md-entity" onClick={() => h.onEntity!(t)} title={tx("{0} seç", {"0": t})}>
             {t}
           </button>
         ) : (
@@ -117,6 +118,7 @@ function blocks(src: string): Block[] {
 }
 
 export default function Markdown({ text, handlers = {} }: { text: string; handlers?: MdHandlers }) {
+  useLocale();
   return (
     <div className="md">
       {blocks(text).map((b, i) => {

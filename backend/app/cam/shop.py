@@ -17,11 +17,21 @@ import re
 from typing import Any
 
 from .interpreter import interpret, parse_line
+from ..i18n import tr, language, error_message
+from ..validation_i18n import present_issue
+from ..alarm_i18n import present_alarm
 
 MOTION_TR = {0: "G0 hızlı hareket", 1: "G1 doğrusal kesme", 2: "G2 saat yönü yay", 3: "G3 saat yönü tersi yay",
              73: "G73 hızlı gagalamalı delme", 81: "G81 delme", 82: "G82 beklemeli delme", 83: "G83 gagalamalı delme",
              84: "G84 kılavuz çekme", 85: "G85 raybalama"}
 KIND_TR = {"rapid": "hızlı hareket (G0)", "feed": "kesme hareketi (G1)", "arc": "yay (G2/G3)", "drill": "delme döngüsü"}
+LABEL_EN = {'G0 hızlı hareket': 'G0 rapid motion', 'G1 doğrusal kesme': 'G1 linear cutting', 'G2 saat yönü yay': 'G2 clockwise arc', 'G3 saat yönü tersi yay': 'G3 counterclockwise arc', 'G73 hızlı gagalamalı delme': 'G73 high-speed peck drilling', 'G81 delme': 'G81 drilling', 'G82 beklemeli delme': 'G82 dwell drilling', 'G83 gagalamalı delme': 'G83 peck drilling', 'G84 kılavuz çekme': 'G84 tapping', 'G85 raybalama': 'G85 boring', 'hızlı hareket (G0)': 'rapid motion (G0)', 'kesme hareketi (G1)': 'cutting motion (G1)', 'yay (G2/G3)': 'arc (G2/G3)', 'delme döngüsü': 'drilling cycle', 'iç ölçü (cep genişliği/boyu)': 'internal dimension (pocket width/length)', 'iç ölçü (kanal genişliği)': 'internal dimension (slot width)', 'frezeyle açılmış delik çapı (helisel)': 'milled bore diameter (helical)', 'dış ölçü (dış kontur)': 'external dimension (outer contour)', 'derinlik / yükseklik': 'depth / height', 'matkapla delinmiş delik çapı': 'drilled hole diameter'}
+
+
+def label(text):
+    return LABEL_EN.get(text, text) if language() == "en" else text
+
+
 NEAR_MM = 2.0  # hızlı hareketin parçaya "yakın" sayıldığı mesafe
 
 
@@ -103,13 +113,13 @@ def _state_dict(st, ws) -> dict[str, Any]:
         "tool_desc": (tool.description or f"{tool.type} Ø{tool.diameter:g}") if tool else None,
         "tool_length": tool.length if tool else None,
         "pending_tool": st.pending_tool if st.pending_tool != st.tool else None,
-        "motion": MOTION_TR.get(st.motion, None if st.motion is None else f"G{st.motion}"),
+        "motion": label(MOTION_TR.get(st.motion, None if st.motion is None else f"G{st.motion}")),
         "feed_mm_min": _r(st.feed, 1),
         "spindle": {"on": st.spindle_on, "rpm": st.spindle_speed},
         "coolant": st.coolant,
-        "units": "mm (G21)" if st.units_mm else "inç (G20)",
-        "distance_mode": "mutlak (G90)" if st.absolute else "artımsal (G91)",
-        "tool_length_comp": f"G43 H{st.tlo}" if st.tlo is not None else "yok (G49)",
+        "units": "mm (G21)" if st.units_mm else tr('inç (G20)', 'inch (G20)'),
+        "distance_mode": tr('mutlak (G90)', 'absolute (G90)') if st.absolute else tr('artımsal (G91)', 'incremental (G91)'),
+        "tool_length_comp": f"G43 H{st.tlo}" if st.tlo is not None else tr('yok (G49)', 'none (G49)'),
         "position_work": _vec(st.pos),
         "program_ended": st.ended,
     }
@@ -179,15 +189,15 @@ def line_state(ws: Any, line: int, gcode_id: str | None = None) -> dict[str, Any
     }
     changes = []
     if after.tool != before.tool:
-        changes.append(f"takım değişir: T{before.tool} → T{after.tool}")
+        changes.append(tr(f"takım değişir: T{before.tool} → T{after.tool}", f"tool changes: T{before.tool} → T{after.tool}"))
     if after.spindle_on != before.spindle_on:
-        changes.append("iş mili " + ("başlar" if after.spindle_on else "durur") + (f" (S{after.spindle_speed:g})" if after.spindle_on and after.spindle_speed else ""))
+        changes.append(tr("iş mili " + ("başlar" if after.spindle_on else "durur"), "spindle " + ("starts" if after.spindle_on else "stops")) + (f" (S{after.spindle_speed:g})" if after.spindle_on and after.spindle_speed else ""))
     if after.coolant != before.coolant:
-        changes.append("soğutma " + ("açılır" if after.coolant else "kapanır"))
+        changes.append(tr("soğutma " + ("açılır" if after.coolant else "kapanır"), "coolant " + ("starts" if after.coolant else "stops")))
     if after.tlo != before.tlo:
-        changes.append("takım boyu telafisi " + (f"devreye girer (G43 H{after.tlo})" if after.tlo is not None else "iptal edilir"))
+        changes.append(tr("takım boyu telafisi " + (f"devreye girer (G43 H{after.tlo})" if after.tlo is not None else "iptal edilir"), "tool length compensation " + (f"enabled (G43 H{after.tlo})" if after.tlo is not None else "cancelled")))
     if after.ended and not before.ended:
-        changes.append("program biter")
+        changes.append(tr("program biter", "program ends"))
     out["changes"] = changes
 
     warnings: list[str] = []
@@ -199,7 +209,7 @@ def line_state(ws: Any, line: int, gcode_id: str | None = None) -> dict[str, Any
         dist_end, inside_end = part.distance(e)
         seg_min, seg_hit = part.segment_min(s, e)
         out["move"] = {
-            "kind": move["kind"], "kind_tr": KIND_TR.get(move["kind"], move["kind"]),
+            "kind": move["kind"], "kind_tr": label(KIND_TR.get(move["kind"], move["kind"])),
             "start_work": _vec(s), "end_work": _vec(e),
             "end_machine": _machine(e, offset, tl), "length_mm": _r(length, 2),
             "feed_mm_min": None if move["kind"] == "rapid" else _r(move.get("feed"), 1),
@@ -214,16 +224,16 @@ def line_state(ws: Any, line: int, gcode_id: str | None = None) -> dict[str, Any
         if risk:
             warnings.append(risk[1])
         if move["kind"] in ("feed", "arc", "drill") and not move.get("spindle_on"):
-            warnings.append("İş mili kapalıyken kesme hareketi.")
+            warnings.append(tr('İş mili kapalıyken kesme hareketi.', 'Cutting motion with the spindle stopped.'))
         if h is not None and h not in tls:
-            warnings.append(f"H{h} takım boyu sistemde girilmemiş; Z konumu makinedeki ofset tablosuna bağlı, ofseti kontrol et.")
+            warnings.append(tr(f"H{h} takım boyu sistemde girilmemiş; Z konumu makinedeki ofset tablosuna bağlı, ofseti kontrol et.", f"H{h} tool length is not entered; Z position depends on the machine offset table. Check the offset."))
         first = _tool_first_lines(full["events"])
         if line in first:
-            warnings.append(f"T{before.tool or after.tool} takımının değişimden sonraki ilk hareketi: takım boyu ve iş sıfırı doğruysa güvenli.")
+            warnings.append(tr(f"T{before.tool or after.tool} takımının değişimden sonraki ilk hareketi: takım boyu ve iş sıfırı doğruysa güvenli.", f"First move after changing to T{before.tool or after.tool}: verify tool length and work offset for safety."))
     if canned is not None:
         out["canned"] = {k: canned.get(k) for k in ("cycle", "r", "z", "has_q", "feed")}
     v = rec.get("validation") or {}
-    out["issues"] = [{k: i.get(k) for k in ("severity", "code", "message", "suggestion")} for i in v.get("issues", []) if i.get("line") == line]
+    out["issues"] = [{k: present_issue(i).get(k) for k in ("severity", "code", "message", "suggestion")} for i in v.get("issues", []) if i.get("line") == line]
     out["warnings"] = warnings
     out["summary"] = _summary(out)
     return out
@@ -239,20 +249,20 @@ def _rapid_risk(ev: dict, part: _Part) -> tuple[str, str] | None:
     s, e = ev["start"], ev["end"]
     d, hit = part.segment_min(s, e)
     if hit:
-        return "error", "Hızlı hareket bitmiş parçanın malzemesinden geçiyor: çarpışma!"
+        return "error", tr('Hızlı hareket bitmiş parçanın malzemesinden geçiyor: çarpışma!', 'Rapid motion passes through finished-part material: collision!')
     if e[2] is None or not part.over_part(e):
         return None
     descending = s[2] is None or e[2] < s[2] - 1e-9
     if descending and e[2] < -1e-6:
-        return "error", f"Hızlı hareket parçanın üzerinde Z{e[2]:g}'a, ham üst yüzeyin altına iniyor; bu bölge önceden boşaltılmadıysa çarpışma."
+        return "error", tr(f"Hızlı hareket parçanın üzerinde Z{e[2]:g}'a, ham üst yüzeyin altına iniyor; bu bölge önceden boşaltılmadıysa çarpışma.", f"Rapid motion descends over the part to Z{e[2]:g}, below stock top; collision unless this region has already been cleared.")
     if descending and e[2] < NEAR_MM:
-        return "warning", f"Hızlı hareket parça üst yüzeyine {e[2]:.2f} mm yaklaşıyor; ilk denemede rapid'i %25'e indir."
+        return "warning", tr(f"Hızlı hareket parça üst yüzeyine {e[2]:.2f} mm yaklaşıyor; ilk denemede rapid'i %25'e indir.", f"Rapid motion approaches within {e[2]:.2f} mm of the part top; reduce rapid override to 25% for prove-out.")
     return None
 
 
 def _summary(s: dict[str, Any]) -> str:
     if s["comment_only"]:
-        return f"N{s['line']}: yorum/boş satır, makine bir şey yapmaz."
+        return tr(f"N{s['line']}: yorum/boş satır, makine bir şey yapmaz.", f"N{s['line']}: comment/blank line; no machine action.")
     parts = []
     mv = s.get("move")
     t = s["after"]["tool"]
@@ -260,16 +270,16 @@ def _summary(s: dict[str, Any]) -> str:
     if mv:
         e = mv["end_work"]
         where = " ".join(f"{a}{c:g}" for a, c in zip("XYZ", e) if c is not None)
-        who = f"T{t} ({td})" if t is not None else "takım"
-        parts.append(f"{who} {where} noktasına {mv['kind_tr']} yapar")
+        who = f"T{t} ({td})" if t is not None else tr("takım", "tool")
+        parts.append(tr(f"{who} {where} noktasına {mv['kind_tr']} yapar", f"{who} performs {mv['kind_tr']} to {where}"))
         z = mv["end_above_top_mm"]
         if z is not None:
-            parts.append(f"parça üst yüzeyinin {z:g} mm üstünde durur" if z > 1e-6 else
-                         "parça üst yüzeyi hizasında durur" if abs(z) <= 1e-6 else f"üst yüzeyin {abs(z):g} mm altına iner")
+            parts.append(tr(f"parça üst yüzeyinin {z:g} mm üstünde durur", f"stops {z:g} mm above the part top") if z > 1e-6 else
+                         tr("parça üst yüzeyi hizasında durur", "stops at the part top") if abs(z) <= 1e-6 else tr(f"üst yüzeyin {abs(z):g} mm altına iner", f"descends {abs(z):g} mm below the top"))
     parts += s["changes"]
-    text = f"N{s['line']}: " + ("; ".join(parts) if parts else "durum komutu (hareket yok)") + "."
+    text = f"N{s['line']}: " + ("; ".join(parts) if parts else tr("durum komutu (hareket yok)", "state command (no motion)")) + "."
     if s["warnings"]:
-        text += " DİKKAT: " + " ".join(s["warnings"])
+        text += tr(" DİKKAT: ", " WARNING: ") + " ".join(s["warnings"])
     return text
 
 
@@ -298,18 +308,18 @@ def prove_out_checklist(ws: Any, gcode_id: str | None = None) -> dict[str, Any]:
                 t = ws.config.tool(tool) if tool is not None else None
                 known = tool in tls
                 add(ln, "tool_change", "info" if known else "warning",
-                    f"T{tool} takılıyor" + (f" ({t.description})" if t and t.description else "") +
-                    ("" if known else " — takım boyu sistemde yok"),
-                    "Takımın magazinde doğru cepte olduğunu ve boyunun ofset tablosuna girildiğini kontrol et.")
+                    tr(f"T{tool} takılıyor", f"T{tool} is being loaded") + (f" ({t.description})" if t and t.description else "") +
+                    ("" if known else tr(" — takım boyu sistemde yok", " — tool length is not entered")),
+                    tr('Takımın magazinde doğru cepte olduğunu ve boyunun ofset tablosuna girildiğini kontrol et.', 'Check that the tool is in the correct magazine pocket and its length is entered in the offset table.'))
                 awaiting_first_move = awaiting_first_cut = True
             if any(m in (3, 4) for m in ev["m"]) and "S" in ev["vals"]:
-                add(ln, "spindle", "info", f"İş mili S{ev['vals']['S']:g} ile başlıyor.", "Yön ve devri dinleyerek doğrula.")
+                add(ln, "spindle", "info", tr(f"İş mili S{ev['vals']['S']:g} ile başlıyor.", f"Spindle starts at S{ev['vals']['S']:g}."), tr('Yön ve devri dinleyerek doğrula.', 'Verify spindle direction and speed.'))
         elif ev["type"] == "move":
             s, e, kind = ev["start"], ev["end"], ev["kind"]
             if awaiting_first_move and kind == "rapid" and e[0] is not None and e[1] is not None:
                 add(ln, "first_approach", "warning",
-                    f"T{tool} değişimden sonra parçanın üzerine ilk gidiş (X{e[0]:g} Y{e[1]:g}" + (f" Z{e[2]:g})" if e[2] is not None else ")"),
-                    "Rapid'i %25'e indir, tek blokta çalıştır, kalan mesafeyi izle.")
+                    tr(f"T{tool} değişimden sonra parçanın üzerine ilk gidiş (X{e[0]:g} Y{e[1]:g}", f"T{tool} first approach over the part after tool change (X{e[0]:g} Y{e[1]:g}") + (f" Z{e[2]:g})" if e[2] is not None else ")"),
+                    tr("Rapid'i %25'e indir, tek blokta çalıştır, kalan mesafeyi izle.", 'Reduce rapid override to 25%, use single block and monitor distance to go.'))
                 awaiting_first_move = False
                 approach_line = ln
             if kind == "rapid" and ln != approach_line:
@@ -320,25 +330,26 @@ def prove_out_checklist(ws: Any, gcode_id: str | None = None) -> dict[str, Any]:
                     if risk[0] == "warning":
                         near_flagged.add(tool)
                     add(ln, "rapid_collision" if risk[0] == "error" else "rapid_near_part", risk[0], risk[1],
-                        "Çalıştırma; programı ve iş sıfırını kontrol et." if risk[0] == "error" else "Rapid'i %25'e indir, kalan mesafeyi izle.")
+                        tr('Çalıştırma; programı ve iş sıfırını kontrol et.', 'Do not run; check the program and work offset.') if risk[0] == "error" else tr("Rapid'i %25'e indir, kalan mesafeyi izle.", 'Reduce rapid override to 25% and monitor distance to go.'))
             elif awaiting_first_cut and kind in ("feed", "arc", "drill"):
                 if e[2] is not None and e[2] <= 1e-6:  # ham üst yüzeyin altına iniyor: malzemeye giriş
-                    add(ln, "first_cut", "warning", f"T{tool} malzemeye ilk kez giriyor ({KIND_TR[kind]}).",
-                        "İlerlemeyi %50'ye indir; sesi ve talaşı izle, sorun varsa feed hold.")
+                    add(ln, "first_cut", "warning", tr(f"T{tool} malzemeye ilk kez giriyor ({KIND_TR[kind]}).", f"T{tool} enters material for the first time ({label(KIND_TR[kind])})."),
+                        tr("İlerlemeyi %50'ye indir; sesi ve talaşı izle, sorun varsa feed hold.", 'Reduce feed override to 50%; monitor sound and chips, and use feed hold if there is a problem.'))
                     awaiting_first_cut = False
     v = rec.get("validation") or {}
-    for i in v.get("issues", []):
+    for raw_issue in v.get("issues", []):
+        i = present_issue(raw_issue)
         if i.get("severity") in ("error", "warning") and i.get("line"):
-            add(i["line"], f"validator:{i['code']}", i["severity"], i["message"], i.get("suggestion") or "Doğrulama raporuna bak.")
+            add(i["line"], f"validator:{i['code']}", i["severity"], i["message"], i.get("suggestion") or tr('Doğrulama raporuna bak.', 'See the validation report.'))
     items.sort(key=lambda x: (x["line"], {"error": 0, "warning": 1, "info": 2}[x["severity"]]))
 
     offset = ws.config.setup.offset_for(ws.config.profile)
     tools_used = sorted({it["message"].split()[0] for it in items if it["kind"] == "tool_change"})
     prep = [
-        f"İş sıfırı (G54) makinede X{offset[0]:g} Y{offset[1]:g} Z{offset[2]:g} olarak ayarlı mı? (iş sıfırı = parça üst yüzeyinin merkezi)",
-        "Takım listesindeki her takımın boyu ölçülüp ofset tablosuna girildi mi?",
-        "İlk çalıştırmada Z ofsetini yukarı kaydırıp havada kesim (dry run) yap.",
-        "Rapid override %25, feed override %50 ile başla; acil durdurma elinin altında olsun.",
+        tr(f"İş sıfırı (G54) makinede X{offset[0]:g} Y{offset[1]:g} Z{offset[2]:g} olarak ayarlı mı? (iş sıfırı = parça üst yüzeyinin merkezi)", f"Is the work offset (G54) set to X{offset[0]:g} Y{offset[1]:g} Z{offset[2]:g} on the machine? (work zero = center of the part top)"),
+        tr('Takım listesindeki her takımın boyu ölçülüp ofset tablosuna girildi mi?', 'Has every tool length been measured and entered in the offset table?'),
+        tr('İlk çalıştırmada Z ofsetini yukarı kaydırıp havada kesim (dry run) yap.', 'For the first run, raise the Z offset and perform a dry run above the part.'),
+        tr('Rapid override %25, feed override %50 ile başla; acil durdurma elinin altında olsun.', 'Start at 25% rapid and 50% feed override; keep the emergency stop within reach.'),
     ]
     return {"gcode_id": rec["gcode_id"], "profile": ws.config.profile.summary(), "preparation": prep,
             "tools": tools_used, "items": items, "counts": {s: sum(1 for i in items if i["severity"] == s) for s in ("error", "warning", "info")},
@@ -363,17 +374,19 @@ def wear_offset(ws: Any, feature: str, nominal: float, measured: float, tool_num
     if feature not in FEATURES:
         raise ToolError(f"feature: {' | '.join(FEATURES)}")
     err = measured - nominal
-    out: dict[str, Any] = {"feature": feature, "feature_tr": FEATURES[feature], "nominal": nominal, "measured": measured,
+    out: dict[str, Any] = {"feature": feature, "feature_tr": label(FEATURES[feature]), "nominal": nominal, "measured": measured,
                            "error_mm": _r(err, 4), "tolerance": tolerance}
     if tolerance is not None and abs(err) <= tolerance:
-        out.update(action="none", message=f"Sapma {err:+.3f} mm, tolerans (±{tolerance:g}) içinde; düzeltme gerekmez.")
+        out.update(action="none", message=tr(f"Sapma {err:+.3f} mm, tolerans (±{tolerance:g}) içinde; düzeltme gerekmez.", f"Deviation {err:+.3f} mm is within tolerance (±{tolerance:g}); no adjustment needed."))
         return out
     if abs(err) > 0.2:
-        out["warning"] = (f"Sapma {err:+.3f} mm; aşınma ofsetiyle düzeltilemeyecek kadar büyük olabilir. Ölçümü, takım çapını, "
-                          "iş sıfırını ve programı kontrol et.")
+        out["warning"] = tr(f"Sapma {err:+.3f} mm; aşınma ofsetiyle düzeltilemeyecek kadar büyük olabilir. Ölçümü, takım çapını, "
+                            "iş sıfırını ve programı kontrol et.",
+                            f"Deviation {err:+.3f} mm may be too large for wear compensation. Check the measurement, tool diameter, work offset and program.")
     if feature == "drilled_hole":
-        out.update(action="tool", message=f"Delik çapını matkap belirler ({err:+.3f} mm). Ofsetle düzelmez: matkabı kontrol et, "
-                   "gerekirse bir sonraki ölçü matkap, rayba veya frezeyle büyütme kullan.")
+        out.update(action="tool", message=tr(f"Delik çapını matkap belirler ({err:+.3f} mm). Ofsetle düzelmez: matkabı kontrol et, "
+                              "gerekirse bir sonraki ölçü matkap, rayba veya frezeyle büyütme kullan.",
+                              f"The drill determines the hole diameter ({err:+.3f} mm). Offsets cannot correct it: inspect the drill and consider a larger drill, reamer or milling."))
         return out
     rec = ws.gcodes.get(gcode_id or ws.current_gcode or "")
     uses_comp = bool(rec and re.search(r"\bG4[12]\b", rec["text"].upper()))
@@ -382,21 +395,27 @@ def wear_offset(ws: Any, feature: str, nominal: float, measured: float, tool_num
         # derin olması gerekirken sığ (err < 0) → takım daha uzun kabul edilmeli → H aşınması negatif
         wear = err
         out.update(action="length_wear", axis="Z", wear_mm=_r(wear, 4),
-                   message=f"Takım boyu aşınma değerine {wear:+.3f} mm ekle (H{tool.number if tool else ''}). "
-                           f"{'Sığ kaldığı için takım daha derine iner.' if err < 0 else 'Derin kaldığı için takım daha yukarıda kalır.'}")
+                   message=tr(f"Takım boyu aşınma değerine {wear:+.3f} mm ekle (H{tool.number if tool else ''}). "
+                              f"{'Sığ kaldığı için takım daha derine iner.' if err < 0 else 'Derin kaldığı için takım daha yukarıda kalır.'}",
+                              f"Add {wear:+.3f} mm to tool length wear (H{tool.number if tool else ''}). "
+                              + ("The shallow cut will move deeper." if err < 0 else "The deep cut will move higher.")))
         return out
     # Çift taraflı ölçü: yarıçap düzeltmesi sapmanın yarısı. İç ölçü dar → daha çok kes → yarıçap aşınması negatif.
     radial = err / 2 if feature in ("pocket", "slot", "bore") else -err / 2
     out.update(radial_wear_mm=_r(radial, 4), uses_cutter_comp=uses_comp)
     if uses_comp:
         out.update(action="radius_wear",
-                   message=f"Takım yarıçap aşınma değerine (D{tool.number if tool else ''}) {radial:+.4f} mm ekle; program G41/G42 kullandığı için makinede düzelir.")
+                   message=tr(f"Takım yarıçap aşınma değerine (D{tool.number if tool else ''}) {radial:+.4f} mm ekle; program G41/G42 kullandığı için makinede düzelir.",
+                              f"Add {radial:+.4f} mm to cutter radius wear (D{tool.number if tool else ''}); the program uses G41/G42 so this adjusts the path on the machine."))
     else:
         d_eff = (tool.diameter if tool else 0) + 2 * radial
         out.update(action="cam", effective_diameter=_r(d_eff, 4) if tool else None,
-                   message=("Program takım yarıçap telafisi (G41/G42) kullanmıyor; makinedeki D aşınma değeri yola etki etmez. "
-                            + (f"CAM'de T{tool.number} çapını Ø{tool.diameter:g} yerine Ø{d_eff:.3f} girip programı yeniden üret."
-                               if tool else "CAM'de takım çapını buna göre düzeltip programı yeniden üret.")))
+                   message=tr("Program takım yarıçap telafisi (G41/G42) kullanmıyor; makinedeki D aşınma değeri yola etki etmez. "
+                              + (f"CAM'de T{tool.number} çapını Ø{tool.diameter:g} yerine Ø{d_eff:.3f} girip programı yeniden üret."
+                                 if tool else "CAM'de takım çapını buna göre düzeltip programı yeniden üret."),
+                              "The program does not use cutter radius compensation (G41/G42); machine D wear does not affect the path. "
+                              + (f"In CAM, set T{tool.number} diameter to Ø{d_eff:.3f} instead of Ø{tool.diameter:g} and regenerate the program."
+                                 if tool else "Adjust the tool diameter in CAM and regenerate the program.")))
     return out
 
 
@@ -422,31 +441,31 @@ def _classify(old: str | None, new: str | None) -> list[tuple[str, str]]:
     ms_o, ms_n = set(o.get("M", [])), set(n.get("M", []))
     rapid = 0 in gs_n or 0 in gs_o
     if "Z" in o and "Z" in n and n["Z"][0] < o["Z"][0] - 1e-9:
-        out.append(("error" if rapid else "warning", f"Z {o['Z'][0]:g} → {n['Z'][0]:g}: {'hızlı hareket ' if rapid else ''}daha aşağı iniyor"))
+        out.append(("error" if rapid else "warning", tr(f"Z {o['Z'][0]:g} → {n['Z'][0]:g}: {'hızlı hareket ' if rapid else ''}daha aşağı iniyor", f"Z {o['Z'][0]:g} → {n['Z'][0]:g}: {'rapid motion ' if rapid else ''}moves lower")))
     elif "Z" in o and "Z" in n and n["Z"][0] != o["Z"][0]:
         out.append(("info", f"Z {o['Z'][0]:g} → {n['Z'][0]:g}"))
     for ax in "XY":
         if ax in o and ax in n and n[ax][0] != o[ax][0]:
-            out.append(("warning", f"{ax} {o[ax][0]:g} → {n[ax][0]:g}: konum değişti"))
+            out.append(("warning", tr(f"{ax} {o[ax][0]:g} → {n[ax][0]:g}: konum değişti", f"{ax} {o[ax][0]:g} → {n[ax][0]:g}: position changed")))
     if "F" in o and "F" in n and n["F"][0] != o["F"][0]:
         up = n["F"][0] > o["F"][0]
-        out.append(("warning" if up else "info", f"ilerleme F{o['F'][0]:g} → F{n['F'][0]:g} ({'arttı' if up else 'azaldı'})"))
+        out.append(("warning" if up else "info", tr(f"ilerleme F{o['F'][0]:g} → F{n['F'][0]:g} ({'arttı' if up else 'azaldı'})", f"feed F{o['F'][0]:g} → F{n['F'][0]:g} ({'increased' if up else 'decreased'})")))
     if "S" in o and "S" in n and n["S"][0] != o["S"][0]:
-        out.append(("info", f"devir S{o['S'][0]:g} → S{n['S'][0]:g}"))
-    for g, msg in ((43, "takım boyu telafisi (G43)"), (54, "iş koordinatı G54")):
+        out.append(("info", tr(f"devir S{o['S'][0]:g} → S{n['S'][0]:g}", f"speed S{o['S'][0]:g} → S{n['S'][0]:g}")))
+    for g, msg in ((43, tr("takım boyu telafisi (G43)", "tool length compensation (G43)")), (54, tr("iş koordinatı G54", "work coordinate G54"))):
         if g in gs_o and g not in gs_n:
-            out.append(("error", f"{msg} kaldırılmış"))
-    for m, msg in ((3, "iş mili başlatma (M3)"), (6, "takım değişimi (M6)"), (8, "soğutma (M8)")):
+            out.append(("error", tr(f"{msg} kaldırılmış", f"{msg} removed")))
+    for m, msg in ((3, tr("iş mili başlatma (M3)", "spindle start (M3)")), (6, tr("takım değişimi (M6)", "tool change (M6)")), (8, tr("soğutma (M8)", "coolant (M8)"))):
         if m in ms_o and m not in ms_n:
-            out.append(("error" if m != 8 else "warning", f"{msg} kaldırılmış"))
+            out.append(("error" if m != 8 else "warning", tr(f"{msg} kaldırılmış", f"{msg} removed")))
         if m in ms_n and m not in ms_o:
-            out.append(("info", f"{msg} eklenmiş"))
+            out.append(("info", tr(f"{msg} eklenmiş", f"{msg} added")))
     if old is not None and new is None and o:
-        out.append(("warning", "satır silinmiş"))
+        out.append(("warning", tr('satır silinmiş', 'line deleted')))
     if old is None and new is not None and n:
-        out.append(("warning", "satır eklenmiş"))
+        out.append(("warning", tr('satır eklenmiş', 'line added')))
     if not out and (old or "").strip() != (new or "").strip():
-        out.append(("info", "yalnızca biçim/yorum değişikliği" if _words(old or "") == _words(new or "") else "değişiklik"))
+        out.append(("info", tr('yalnızca biçim/yorum değişikliği', 'format/comment change only') if _words(old or "") == _words(new or "") else tr("değişiklik", "change")))
     return out
 
 
@@ -477,7 +496,7 @@ def diff_programs(ws: Any, base_id: str, edited_id: str) -> dict[str, Any]:
     return {"base_id": base_id, "edited_id": edited_id, "change_count": len(changes), "counts": counts,
             "changes": changes[:200], "truncated": len(changes) > 200,
             "validation": {"base": (va.get("counts") or {}), "edited": (vb.get("counts") or {})},
-            "note": "Makinede yapılan değişiklikler CAM kaynağına işlenmezse bir sonraki üretimde kaybolur."}
+            "note": tr('Makinede yapılan değişiklikler CAM kaynağına işlenmezse bir sonraki üretimde kaybolur.', 'Changes made on the machine will be lost at the next generation unless they are applied to the CAM source.')}
 
 
 # ------------------------------------------------------------------------------------------- alarm bilgi tabanı
@@ -537,5 +556,5 @@ def explain_alarm(ws: Any, code: str, line: int | None = None, controller: str |
             if rel:
                 out["matching_issues"] = [i for i in st["issues"] if i["code"] in rel]
         except Exception as exc:  # satır yok vb.
-            out["line_error"] = str(exc)
-    return out
+            out["line_error"] = error_message(str(exc))
+    return present_alarm(out)

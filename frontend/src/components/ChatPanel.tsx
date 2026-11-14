@@ -1,3 +1,5 @@
+import { tx, useLocale } from "../i18n";
+import { selectionLabel } from "../presentation";
 import { Fragment, useEffect, useRef, useState } from "react";
 
 /** Asistanın arayüzde görünen adı */
@@ -6,44 +8,44 @@ import Markdown from "./Markdown";
 import type { ChatAction, ChatMessage, Selection } from "../types";
 import { isRegion, selectionId } from "../types";
 
-const EXAMPLES = [
-  "60 × 60 × 10 mm boyutlarında kare bir plaka oluştur. Merkezine 10 mm yarıçaplı bir delik aç.",
-  "Köşelerden 10 mm içeride dört adet 6 mm çaplı delik aç.",
-  "Sağ üst bölgeye 20x15 mm, 4 mm derinliğinde, köşe yarıçapı 3 mm bir cep aç.",
-  "Seçtiğim deliğin yarıçapını 15 mm yap.",
-  "Seçtiğim bölgeye 3 mm derinliğinde cep aç.",
-  "Bu parça için G-code üret ve sonucu açıkla.",
-];
+const EXAMPLES = () => ([
+  tx("60 × 60 × 10 mm boyutlarında kare bir plaka oluştur. Merkezine 10 mm yarıçaplı bir delik aç."),
+  tx("Köşelerden 10 mm içeride dört adet 6 mm çaplı delik aç."),
+  tx("Sağ üst bölgeye 20x15 mm, 4 mm derinliğinde, köşe yarıçapı 3 mm bir cep aç."),
+  tx("Seçtiğim deliğin yarıçapını 15 mm yap."),
+  tx("Seçtiğim bölgeye 3 mm derinliğinde cep aç."),
+  tx("Bu parça için G-code üret ve sonucu açıkla."),
+]);
 
-const TOOL_LABELS: Record<string, string> = {
-  create_box: "kutu oluştur",
-  create_cylinder: "silindir oluştur",
-  add_hole: "delik ekle",
-  add_pocket: "cep ekle",
-  add_fillet: "kavis",
-  add_chamfer: "pah",
-  modify_base: "gövde ölçüsü",
-  modify_hole: "delik düzenle",
-  modify_feature: "özellik düzenle",
-  delete_feature: "sil",
-  get_geometry_info: "geometri bilgisi",
-  get_holes: "delikleri listele",
-  get_face_info: "yüzey bilgisi",
-  undo: "geri al",
-  export_step: "STEP dışa aktar",
-  generate_gcode: "G-code üret",
-  validate_gcode: "G-code doğrula",
-  list_machine_profiles: "makine profilleri",
-  set_machine_profile: "makine profili seç",
-  set_tool_length: "takım boyu",
-  add_engraving_text: "yazı kazı",
-  add_engraving_path: "yol kazı",
-  get_line_state: "satır durumu",
-  prove_out_checklist: "prove-out listesi",
-  explain_alarm: "alarm açıklama",
-  suggest_wear_offset: "ölçü düzeltme",
-  diff_programs: "program farkı",
-};
+const TOOL_LABELS = (): Record<string, string> => ({
+  create_box: tx("kutu oluştur"),
+  create_cylinder: tx("silindir oluştur"),
+  add_hole: tx("delik ekle"),
+  add_pocket: tx("cep ekle"),
+  add_fillet: tx("kavis"),
+  add_chamfer: tx("pah"),
+  modify_base: tx("gövde ölçüsü"),
+  modify_hole: tx("delik düzenle"),
+  modify_feature: tx("özellik düzenle"),
+  delete_feature: tx("sil"),
+  get_geometry_info: tx("geometri bilgisi"),
+  get_holes: tx("delikleri listele"),
+  get_face_info: tx("yüzey bilgisi"),
+  undo: tx("geri al"),
+  export_step: tx("STEP dışa aktar"),
+  generate_gcode: tx("G-code üret"),
+  validate_gcode: tx("G-code doğrula"),
+  list_machine_profiles: tx("makine profilleri"),
+  set_machine_profile: tx("makine profili seç"),
+  set_tool_length: tx("takım boyu"),
+  add_engraving_text: tx("yazı kazı"),
+  add_engraving_path: tx("yol kazı"),
+  get_line_state: tx("satır durumu"),
+  prove_out_checklist: tx("prove-out listesi"),
+  explain_alarm: tx("alarm açıklama"),
+  suggest_wear_offset: tx("ölçü düzeltme"),
+  diff_programs: tx("program farkı"),
+});
 
 function argText(args: Record<string, unknown>) {
   return Object.entries(args)
@@ -61,10 +63,11 @@ function valText(v: unknown): { text: string; kind: string; full?: string } {
 
 /** Asistanın çağırdığı araç: fonksiyon imzası gibi, eş aralıklı yazıyla */
 function ToolCall({ a }: { a: ChatAction }) {
+  useLocale();
   const args = Object.entries(a.args).filter(([, v]) => v !== null && v !== undefined);
   return (
     <div className={`fn ${a.ok ? "ok" : "fail"}`} title={argText(a.args)}>
-      <span className="fn-status" aria-label={a.ok ? "başarılı" : "başarısız"}>{a.ok ? "✓" : "✕"}</span>
+      <span className="fn-status" aria-label={a.ok ? tx("başarılı") : tx("başarısız")}>{a.ok ? "✓" : "✕"}</span>
       <code className="fn-sig">
         <span className="fn-name">{a.tool}</span>
         <span className="fn-punc">(</span>
@@ -83,19 +86,19 @@ function ToolCall({ a }: { a: ChatAction }) {
         })}
         <span className="fn-punc">)</span>
       </code>
-      {TOOL_LABELS[a.tool] && <span className="fn-label">{TOOL_LABELS[a.tool]}</span>}
+      {TOOL_LABELS()[a.tool] && <span className="fn-label">{TOOL_LABELS()[a.tool]}</span>}
       {a.error && <div className="fn-err">{a.error}</div>}
     </div>
   );
 }
 
 function ToolCalls({ actions }: { actions: ChatAction[] }) {
+  useLocale();
   const fails = actions.filter((a) => !a.ok).length;
   return (
     <details className="fns" open={actions.length <= 3 || fails > 0}>
       <summary>
-        <span className="fns-icon">ƒ</span> {actions.length} araç çağrısı
-        {fails > 0 && <span className="fns-fail"> · {fails} başarısız</span>}
+        <span className="fns-icon">ƒ</span> {actions.length}  {tx("araç çağrısı")} {fails > 0 && <span className="fns-fail"> · {fails}  {tx("başarısız")}</span>}
       </summary>
       <div className="fns-list">
         {actions.map((a, j) => (
@@ -133,6 +136,7 @@ export default function ChatPanel({
   conversationCount: number;
   onOpenDrawer: () => void;
 }) {
+  useLocale();
   const [text, setText] = useState("");
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -150,7 +154,7 @@ export default function ChatPanel({
   return (
     <div className="chat">
       <div className="panel-head chat-head">
-        <button className="drawer-toggle" onClick={onOpenDrawer} title="Sohbetler" aria-label="Sohbet listesini aç">
+        <button className="drawer-toggle" onClick={onOpenDrawer} title={tx("Sohbetler")} aria-label={tx("Sohbet listesini aç")}>
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
             <path d="M2.5 4h11M2.5 8h11M2.5 12h7" />
           </svg>
@@ -160,16 +164,15 @@ export default function ChatPanel({
           <span lang="en">{ASSISTANT_NAME}</span>
           <span className="chat-conv-title" title={title}>{title}</span>
         </div>
-        <button className="btn ghost small" onClick={onReset} title="Yeni bir sohbet başlat (bu sohbet çekmecede kalır)">
-          + Yeni sohbet
-        </button>
+        <button className="btn ghost small" onClick={onReset} title={tx("Yeni bir sohbet başlat (bu sohbet çekmecede kalır)")}>
+           {tx("+ Yeni sohbet")} </button>
       </div>
       <div className="chat-list" ref={listRef}>
         {messages.length === 0 && (
           <div className="chat-empty">
-            <p>Parçayı doğal dille tarif edin, mevcut bir STEP dosyası yükleyin ya da 3D görünümde bir yüzeye tıklayıp onu düzenlemesini isteyin.</p>
+            <p>{tx("Parçayı doğal dille tarif edin, mevcut bir STEP dosyası yükleyin ya da 3D görünümde bir yüzeye tıklayıp onu düzenlemesini isteyin.")}</p>
             <div className="examples">
-              {EXAMPLES.map((e) => (
+              {EXAMPLES().map((e) => (
                 <button key={e} className="example" onClick={() => setText(e)}>
                   {e}
                 </button>
@@ -203,34 +206,34 @@ export default function ChatPanel({
         {selection.length === 1 && (
           <div className="sel-chip">
             <span>
-              {isRegion(selection[0]) ? "▭" : "⌖"} <b>{selectionId(selection[0])}</b> — {selection[0].role}
+              {isRegion(selection[0]) ? "▭" : "⌖"} <b>{selectionId(selection[0])}</b> — {selectionLabel(selection[0])}
             </span>
-            <button onClick={onClearSelection} title="Seçimi kaldır">
+            <button onClick={onClearSelection} title={tx("Seçimi kaldır")}>
               ×
             </button>
           </div>
         )}
         {selection.length > 1 && (
           <div className="sel-chip multi">
-            <span className="sel-count">{selection.length} eleman</span>
+            <span className="sel-count">{selection.length}  {tx("eleman")}</span>
             <span className="sel-tags">
               {selection.map((x) => (
-                <span key={selectionId(x)} className="sel-tag" title={x.role}>
+                <span key={selectionId(x)} className="sel-tag" title={selectionLabel(x)}>
                   {isRegion(x) ? "▭" : "⌖"} {selectionId(x)}
-                  <button onClick={() => onRemove(selectionId(x))} title="Seçimden çıkar">
+                  <button onClick={() => onRemove(selectionId(x))} title={tx("Seçimden çıkar")}>
                     ×
                   </button>
                 </span>
               ))}
             </span>
-            <button onClick={onClearSelection} title="Seçimi bırak">
+            <button onClick={onClearSelection} title={tx("Seçimi bırak")}>
               ×
             </button>
           </div>
         )}
         <textarea
           value={text}
-          placeholder={selection.length > 1 ? "Seçili elemanların hepsi için komut yazın… (ör. seçtiğim bölgelere 2 mm cep aç)" : selection.length ? (isRegion(selection[0]) ? "Seçili bölge için komut yazın… (ör. bu bölgeye 3 mm cep aç)" : "Seçili eleman için komut yazın… (ör. çapını 12 mm yap)") : "Komut yazın… (Enter gönderir, Shift+Enter yeni satır)"}
+          placeholder={selection.length > 1 ? tx("Seçili elemanların hepsi için komut yazın… (ör. seçtiğim bölgelere 2 mm cep aç)") : selection.length ? (isRegion(selection[0]) ? tx("Seçili bölge için komut yazın… (ör. bu bölgeye 3 mm cep aç)") : tx("Seçili eleman için komut yazın… (ör. çapını 12 mm yap)")) : tx("Komut yazın… (Enter gönderir, Shift+Enter yeni satır)")}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
@@ -241,8 +244,7 @@ export default function ChatPanel({
           rows={3}
         />
         <button className="btn primary send" onClick={send} disabled={busy || !text.trim()}>
-          Gönder
-        </button>
+           {tx("Gönder")} </button>
       </div>
     </div>
   );

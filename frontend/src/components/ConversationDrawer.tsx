@@ -1,3 +1,4 @@
+import { tx, useLocale } from "../i18n";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ConvSummary } from "../types";
 
@@ -9,13 +10,13 @@ function groupOf(iso: string): string {
   const start = new Date();
   start.setHours(0, 0, 0, 0);
   const t = d.getTime();
-  if (t >= start.getTime()) return "Bugün";
-  if (t >= start.getTime() - DAY) return "Dün";
-  if (t >= start.getTime() - 7 * DAY) return "Son 7 gün";
-  if (t >= start.getTime() - 30 * DAY) return "Son 30 gün";
-  return "Daha eski";
+  if (t >= start.getTime()) return tx("Bugün");
+  if (t >= start.getTime() - DAY) return tx("Dün");
+  if (t >= start.getTime() - 7 * DAY) return tx("Son 7 gün");
+  if (t >= start.getTime() - 30 * DAY) return tx("Son 30 gün");
+  return tx("Daha eski");
 }
-const ORDER = ["Bugün", "Dün", "Son 7 gün", "Son 30 gün", "Daha eski"];
+const ORDER = () => ([tx("Bugün"), tx("Dün"), tx("Son 7 gün"), tx("Son 30 gün"), tx("Daha eski")]);
 const hm = (iso: string) => {
   const d = new Date(iso);
   const today = new Date().toDateString() === d.toDateString();
@@ -37,6 +38,7 @@ function Item({ c, busy, onSelect, onRename, onDelete }: {
   onRename: (t: string) => void;
   onDelete: () => void;
 }) {
+  useLocale();
   const [mode, setMode] = useState<"view" | "edit" | "confirm">("view");
   const [title, setTitle] = useState(c.title);
   const input = useRef<HTMLInputElement>(null);
@@ -67,33 +69,31 @@ function Item({ c, busy, onSelect, onRename, onDelete }: {
             }
           }}
           onBlur={save}
-          aria-label="Sohbet adı"
+          aria-label={tx("Sohbet adı")}
         />
       ) : (
         <button className="conv-main" disabled={busy && !c.active} onClick={onSelect} title={c.preview || c.title}>
-          <span className={`conv-title ${c.titled ? "" : "untitled"}`}>{c.title}</span>
+          <span className={`conv-title ${c.titled ? "" : "untitled"}`}>{c.titled ? c.title : tx("Yeni sohbet")}</span>
           <span className="conv-meta">
-            {c.user_count > 0 ? `${c.user_count} mesaj` : "boş"} · {hm(c.updated)}
+            {c.user_count > 0 ? tx("{0} mesaj", {"0": c.user_count}) : tx("boş")} · {hm(c.updated)}
           </span>
         </button>
       )}
       {mode === "confirm" ? (
         <div className="conv-confirm">
-          <span>Silinsin mi?</span>
+          <span>{tx("Silinsin mi?")}</span>
           <button className="btn small danger-ghost" onClick={onDelete}>
-            Sil
-          </button>
+             {tx("Sil")} </button>
           <button className="btn ghost small" onClick={() => setMode("view")}>
-            Vazgeç
-          </button>
+             {tx("Vazgeç")} </button>
         </div>
       ) : (
         mode === "view" && (
           <div className="conv-actions">
-            <button className="icon-btn" title="Yeniden adlandır" onClick={() => setMode("edit")}>
+            <button className="icon-btn" title={tx("Yeniden adlandır")} onClick={() => setMode("edit")}>
               {Icon.edit}
             </button>
-            <button className="icon-btn" title="Sil" disabled={busy} onClick={() => setMode("confirm")}>
+            <button className="icon-btn" title={tx("Sil")} disabled={busy} onClick={() => setMode("confirm")}>
               {Icon.trash}
             </button>
           </div>
@@ -122,6 +122,7 @@ export default function ConversationDrawer({
   onRename: (id: string, title: string) => void;
   onDelete: (id: string) => void;
 }) {
+  const { locale } = useLocale();
   const [q, setQ] = useState("");
   const search = useRef<HTMLInputElement>(null);
   useEffect(() => {
@@ -136,23 +137,23 @@ export default function ConversationDrawer({
   }, [open, onClose]);
 
   const groups = useMemo(() => {
-    const ql = q.trim().toLocaleLowerCase("tr");
-    const rows = ql ? conversations.filter((c) => `${c.title} ${c.preview}`.toLocaleLowerCase("tr").includes(ql)) : conversations;
+    const ql = q.trim().toLocaleLowerCase(locale);
+    const rows = ql ? conversations.filter((c) => `${c.title} ${c.preview}`.toLocaleLowerCase(locale).includes(ql)) : conversations;
     const g = new Map<string, ConvSummary[]>();
     rows.forEach((c) => {
       const k = groupOf(c.updated);
       g.set(k, [...(g.get(k) ?? []), c]);
     });
-    return ORDER.filter((k) => g.has(k)).map((k) => [k, g.get(k)!] as const);
-  }, [conversations, q]);
+    return ORDER().filter((k) => g.has(k)).map((k) => [k, g.get(k)!] as const);
+  }, [conversations, q, locale]);
 
   return (
     <>
       <div className={`drawer-backdrop ${open ? "open" : ""}`} onClick={onClose} aria-hidden />
-      <aside className={`drawer ${open ? "open" : ""}`} aria-hidden={!open} aria-label="Sohbetler">
+      <aside className={`drawer ${open ? "open" : ""}`} aria-hidden={!open} aria-label={tx("Sohbetler")}>
         <div className="drawer-head">
-          <span>Sohbetler</span>
-          <button className="icon-btn" onClick={onClose} title="Kapat (Esc)">
+          <span>{tx("Sohbetler")}</span>
+          <button className="icon-btn" onClick={onClose} title={tx("Kapat (Esc)")}>
             {Icon.close}
           </button>
         </div>
@@ -164,11 +165,10 @@ export default function ConversationDrawer({
             onClose();
           }}
         >
-          {Icon.plus} Yeni sohbet
-        </button>
-        <input ref={search} className="drawer-search" placeholder="Sohbetlerde ara" value={q} onChange={(e) => setQ(e.target.value)} tabIndex={open ? 0 : -1} />
+          {Icon.plus}  {tx("Yeni sohbet")} </button>
+        <input ref={search} className="drawer-search" placeholder={tx("Sohbetlerde ara")} value={q} onChange={(e) => setQ(e.target.value)} tabIndex={open ? 0 : -1} />
         <div className="drawer-list">
-          {groups.length === 0 && <div className="muted small pad">Eşleşen sohbet yok.</div>}
+          {groups.length === 0 && <div className="muted small pad">{tx("Eşleşen sohbet yok.")}</div>}
           {groups.map(([g, list]) => (
             <section key={g}>
               <div className="drawer-group">{g}</div>
@@ -190,7 +190,7 @@ export default function ConversationDrawer({
             </section>
           ))}
         </div>
-        <div className="drawer-foot small muted">{conversations.length} sohbet · her birinin geçmişi ayrı tutulur</div>
+        <div className="drawer-foot small muted">{conversations.length}  {tx("sohbet · her birinin geçmişi ayrı tutulur")}</div>
       </aside>
     </>
   );

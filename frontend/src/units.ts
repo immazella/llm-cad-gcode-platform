@@ -6,6 +6,7 @@
  * React bağlamı yerine küçük bir dış depo (useSyncExternalStore) kullanılır.
  */
 import { useSyncExternalStore } from "react";
+import { tx } from "./i18n";
 
 export type Unit = "mm" | "cm" | "m" | "in";
 
@@ -24,19 +25,19 @@ interface UnitDef {
 
 export const UNITS: Record<Unit, UnitDef> = {
   mm: {
-    label: "mm", name: "Milimetre", mm: 1, digits: 2,
+    label: "mm", get name() { return tx("Milimetre"); }, mm: 1, digits: 2,
     steps: [[1, 0.2], [2, 0.5], [5, 1], [10, 2], [25, 5], [50, 10], [100, 20], [250, 50], [500, 100], [1000, 200], [2500, 500]],
   },
   cm: {
-    label: "cm", name: "Santimetre", mm: 10, digits: 2,
+    label: "cm", get name() { return tx("Santimetre"); }, mm: 10, digits: 2,
     steps: [[0.1, 0.02], [0.2, 0.05], [0.5, 0.1], [1, 0.2], [2, 0.5], [5, 1], [10, 2], [25, 5], [50, 10], [100, 20], [250, 50]],
   },
   m: {
-    label: "m", name: "Metre", mm: 1000, digits: 4,
+    label: "m", get name() { return tx("Metre"); }, mm: 1000, digits: 4,
     steps: [[0.001, 0.0002], [0.002, 0.0005], [0.005, 0.001], [0.01, 0.002], [0.025, 0.005], [0.05, 0.01], [0.1, 0.02], [0.25, 0.05], [0.5, 0.1], [1, 0.2], [2.5, 0.5]],
   },
   in: {
-    label: "in", name: "İnç", mm: 25.4, digits: 3,
+    label: "in", get name() { return tx("İnç"); }, mm: 25.4, digits: 3,
     steps: [[1 / 32, 1 / 128], [1 / 16, 1 / 64], [1 / 8, 1 / 32], [1 / 4, 1 / 16], [1 / 2, 1 / 8], [1, 1 / 4], [2, 1 / 2], [5, 1], [10, 2], [25, 5], [50, 10], [100, 20]],
   },
 };

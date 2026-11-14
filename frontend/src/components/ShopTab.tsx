@@ -1,3 +1,4 @@
+import { tx, useLocale } from "../i18n";
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api";
 import type { AlarmResult, Checklist, GcodeRecord, LineState, ProgramDiff, WearResult } from "../types";
@@ -8,7 +9,7 @@ import type { AlarmResult, Checklist, GcodeRecord, LineState, ProgramDiff, WearR
  */
 
 type Sev = "error" | "warning" | "info";
-const SEV_TR: Record<Sev, string> = { error: "kritik", warning: "dikkat", info: "bilgi" };
+const SEV_TR = (): Record<Sev, string> => ({ error: tx("kritik"), warning: tx("dikkat"), info: tx("bilgi") });
 
 function useTool<T>(onError: (m: string) => void) {
   const [data, setData] = useState<T | null>(null);
@@ -41,6 +42,7 @@ function LineCard({ gcode, line, setLine, onShow, onAsk, onError }: {
   onAsk: (text: string) => void;
   onError: (m: string) => void;
 }) {
+  useLocale();
   const t = useTool<LineState>(onError);
   const [input, setInput] = useState(String(line));
   useEffect(() => setInput(String(line)), [line]);
@@ -56,11 +58,10 @@ function LineCard({ gcode, line, setLine, onShow, onAsk, onError }: {
   return (
     <section className="card shop-card">
       <h4>
-        Satır ne yapacak?
-        <span className="muted small">tek blok yardımcısı</span>
+         {tx("Satır ne yapacak?")} <span className="muted small">{tx("tek blok yardımcısı")}</span>
       </h4>
       <div className="line-nav">
-        <button className="btn" onClick={() => go(line - 1)} disabled={line <= 1} title="Önceki satır">
+        <button className="btn" onClick={() => go(line - 1)} disabled={line <= 1} title={tx("Önceki satır")}>
           ◀
         </button>
         <input
@@ -70,9 +71,9 @@ function LineCard({ gcode, line, setLine, onShow, onAsk, onError }: {
           onChange={(e) => setInput(e.target.value.replace(/[^0-9]/g, ""))}
           onKeyDown={(e) => e.key === "Enter" && input && go(Number(input))}
           onBlur={() => input && Number(input) !== line && go(Number(input))}
-          aria-label="Satır numarası"
+          aria-label={tx("Satır numarası")}
         />
-        <button className="btn" onClick={() => go(line + 1)} disabled={line >= max} title="Sonraki satır (tek blok)">
+        <button className="btn" onClick={() => go(line + 1)} disabled={line >= max} title={tx("Sonraki satır (tek blok)")}>
           ▶
         </button>
         <span className="muted small">/ {max}</span>
@@ -81,31 +82,31 @@ function LineCard({ gcode, line, setLine, onShow, onAsk, onError }: {
         <div className={`line-result ${t.busy ? "busy" : ""}`}>
           <div className="code-line mono">
             <span className="ln">{s.line}</span>
-            {s.text || <span className="muted">(boş)</span>}
+            {s.text || <span className="muted">{tx("(boş)")}</span>}
           </div>
           {s.warnings.map((w, i) => (
-            <div key={i} className={`shop-alert ${/çarpışma|malzemenin içinden|altına iniyor/.test(w) ? "error" : "warning"}`}>
+            <div key={i} className={`shop-alert ${/çarpışma|malzemenin içinden|altına iniyor|collision/i.test(w) ? "error" : "warning"}`}>
               {w}
             </div>
           ))}
-          <p className="line-summary">{s.summary.replace(/^N\d+:\s*/, "").split(" DİKKAT:")[0]}</p>
+          <p className="line-summary">{s.summary.replace(/^N\d+:\s*/, "").split(/ DİKKAT:| WARNING:| CAUTION:/)[0]}</p>
           {s.move && (
             <table className="kv">
               <tbody>
-                <tr><td>Hareket</td><td>{s.move.kind_tr}{s.move.feed_mm_min ? ` · F${s.move.feed_mm_min}` : ""}{s.move.length_mm ? ` · ${s.move.length_mm} mm` : ""}</td></tr>
-                <tr><td>Bitiş (iş koord.)</td><td className="mono">{xyz(s.move.end_work)}</td></tr>
-                <tr><td>Bitiş (makine)</td><td className="mono">{xyz(s.move.end_machine)}</td></tr>
+                <tr><td>{tx("Hareket")}</td><td>{s.move.kind_tr}{s.move.feed_mm_min ? ` · F${s.move.feed_mm_min}` : ""}{s.move.length_mm ? ` · ${s.move.length_mm} mm` : ""}</td></tr>
+                <tr><td>{tx("Bitiş (iş koord.)")}</td><td className="mono">{xyz(s.move.end_work)}</td></tr>
+                <tr><td>{tx("Bitiş (makine)")}</td><td className="mono">{xyz(s.move.end_machine)}</td></tr>
                 {s.move.end_above_top_mm !== null && (
-                  <tr><td>Üst yüzeye göre</td><td className="mono">{s.move.end_above_top_mm > 0 ? "+" : ""}{s.move.end_above_top_mm} mm</td></tr>
+                  <tr><td>{tx("Üst yüzeye göre")}</td><td className="mono">{s.move.end_above_top_mm > 0 ? "+" : ""}{s.move.end_above_top_mm} mm</td></tr>
                 )}
               </tbody>
             </table>
           )}
           <table className="kv">
             <tbody>
-              <tr><td>Takım</td><td>{s.after.tool !== null ? <><b className="mono">T{s.after.tool}</b> {s.after.tool_desc}</> : "—"}</td></tr>
-              <tr><td>İş mili / soğutma</td><td>{s.after.spindle.on ? `açık S${s.after.spindle.rpm ?? "?"}` : "kapalı"} · {s.after.coolant ? "soğutma açık" : "soğutma kapalı"}</td></tr>
-              <tr><td>Takım boyu</td><td className="mono">{s.after.tool_length_comp}</td></tr>
+              <tr><td>{tx("Takım")}</td><td>{s.after.tool !== null ? <><b className="mono">T{s.after.tool}</b> {s.after.tool_desc}</> : "—"}</td></tr>
+              <tr><td>{tx("İş mili / soğutma")}</td><td>{s.after.spindle.on ? tx("açık S{0}", {"0": s.after.spindle.rpm ?? "?"}) : tx("kapalı")} · {s.after.coolant ? tx("soğutma açık") : tx("soğutma kapalı")}</td></tr>
+              <tr><td>{tx("Takım boyu")}</td><td className="mono">{s.after.tool_length_comp}</td></tr>
             </tbody>
           </table>
           {s.issues.map((i, k) => (
@@ -116,11 +117,9 @@ function LineCard({ gcode, line, setLine, onShow, onAsk, onError }: {
           ))}
           <div className="btn-row">
             <button className="btn small" onClick={() => onShow(line)}>
-              Takım yolunda göster
-            </button>
-            <button className="btn small" onClick={() => onAsk(`${line}. satır ne yapacak? Operatöre kısaca açıkla.`)}>
-              Toni Kross'a açıklat
-            </button>
+               {tx("Takım yolunda göster")} </button>
+            <button className="btn small" onClick={() => onAsk(tx("{0}. satır ne yapacak? Operatöre kısaca açıkla.", {"0": line}))}>
+               {tx("Toni Kross'a açıklat")} </button>
           </div>
         </div>
       )}
@@ -130,6 +129,7 @@ function LineCard({ gcode, line, setLine, onShow, onAsk, onError }: {
 
 /* ------------------------------------------------------------------ prove-out */
 function ChecklistCard({ gcode, onPick, onError }: { gcode: GcodeRecord; onPick: (n: number) => void; onError: (m: string) => void }) {
+  useLocale();
   const t = useTool<Checklist>(onError);
   const [done, setDone] = useState<Set<number>>(new Set());
   useEffect(() => {
@@ -141,15 +141,14 @@ function ChecklistCard({ gcode, onPick, onError }: { gcode: GcodeRecord; onPick:
   return (
     <section className="card shop-card">
       <h4>
-        Prove-out kontrol listesi
-        <button className="btn small primary" disabled={t.busy} onClick={() => void t.run("prove_out_checklist", { gcode_id: gcode.gcode_id })}>
-          {c ? "Yenile" : "Listeyi çıkar"}
+         {tx("Prove-out kontrol listesi")} <button className="btn small primary" disabled={t.busy} onClick={() => void t.run("prove_out_checklist", { gcode_id: gcode.gcode_id })}>
+          {c ? tx("Yenile") : tx("Listeyi çıkar")}
         </button>
       </h4>
-      {!c && <div className="muted small">Programı makinede ilk kez denemeden önce: hazırlık adımları, her takımın ilk yaklaşması ve ilk kesişi, riskli hızlı hareketler.</div>}
+      {!c && <div className="muted small">{tx("Programı makinede ilk kez denemeden önce: hazırlık adımları, her takımın ilk yaklaşması ve ilk kesişi, riskli hızlı hareketler.")}</div>}
       {c && (
         <>
-          <div className="check-group">Hazırlık</div>
+          <div className="check-group">{tx("Hazırlık")}</div>
           {c.preparation.map((p, i) => (
             <label key={i} className="check-row">
               <input
@@ -161,7 +160,7 @@ function ChecklistCard({ gcode, onPick, onError }: { gcode: GcodeRecord; onPick:
             </label>
           ))}
           <div className="check-group">
-            Satırlar <span className="muted small">{c.counts.error} kritik · {c.counts.warning} dikkat</span>
+             {tx("Satırlar")} <span className="muted small">{c.counts.error}  {tx("kritik ·")} {c.counts.warning}  {tx("dikkat")}</span>
           </div>
           {c.items.map((it, i) => (
             <div key={i} className={`check-item ${it.severity} ${done.has(i) ? "done" : ""}`}>
@@ -169,9 +168,9 @@ function ChecklistCard({ gcode, onPick, onError }: { gcode: GcodeRecord; onPick:
                 type="checkbox"
                 checked={done.has(i)}
                 onChange={() => setDone((d) => { const n = new Set(d); if (n.has(i)) n.delete(i); else n.add(i); return n; })}
-                aria-label="Tamamlandı"
+                aria-label={tx("Tamamlandı")}
               />
-              <button className="line-chip mono" onClick={() => onPick(it.line)} title="Bu satırı aç">
+              <button className="line-chip mono" onClick={() => onPick(it.line)} title={tx("Bu satırı aç")}>
                 {it.line}
               </button>
               <div>
@@ -188,6 +187,7 @@ function ChecklistCard({ gcode, onPick, onError }: { gcode: GcodeRecord; onPick:
 
 /* ------------------------------------------------------------------ alarm */
 function AlarmCard({ line, onError }: { line: number; onError: (m: string) => void }) {
+  useLocale();
   const t = useTool<AlarmResult>(onError);
   const [code, setCode] = useState("");
   const [withLine, setWithLine] = useState(true);
@@ -195,32 +195,29 @@ function AlarmCard({ line, onError }: { line: number; onError: (m: string) => vo
   const ask = () => code.trim() && void t.run("explain_alarm", { code: code.trim(), ...(withLine ? { line } : {}) });
   return (
     <section className="card shop-card">
-      <h4>Alarm açıkla</h4>
+      <h4>{tx("Alarm açıkla")}</h4>
       <div className="inline-form">
         <input
           className="mono"
-          placeholder="ör. PS0010, OT0501, error:20, ALARM:2"
+          placeholder={tx("ör. PS0010, OT0501, error:20, ALARM:2")}
           value={code}
           onChange={(e) => setCode(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && ask()}
         />
         <button className="btn primary small" disabled={!code.trim() || t.busy} onClick={ask}>
-          Açıkla
-        </button>
+           {tx("Açıkla")} </button>
       </div>
       <label className="check-row small">
         <input type="checkbox" checked={withLine} onChange={(e) => setWithLine(e.target.checked)} />
         <span>
-          Alarm <b className="mono">{line}.</b> satırda oldu
-        </span>
+          Alarm <b className="mono">{line}.</b>  {tx("satırda oldu")} </span>
       </label>
       {a && !a.found && (
         <div className="shop-alert warning">
           {a.note}
           {a.found_in_other?.map((o) => (
             <div key={o.controller} className="small">
-              Bu kod <b>{o.controller}</b> tablosunda var ({o.code} — {o.title}). Seçili makine profili doğru mu?
-            </div>
+               {tx("Bu kod")} <b>{o.controller}</b>  {tx("tablosunda var (")}{o.code} — {o.title}{tx("). Seçili makine profili doğru mu?")} </div>
           ))}
         </div>
       )}
@@ -240,12 +237,12 @@ function AlarmCard({ line, onError }: { line: number; onError: (m: string) => vo
             </ul>
           )}
           {a.matching_issues && a.matching_issues.length > 0 && (
-            <div className="shop-alert warning small">Doğrulayıcı bu satırda da bulmuştu: {a.matching_issues.map((i) => `${i.code} ${i.message}`).join(" · ")}</div>
+            <div className="shop-alert warning small">{tx("Doğrulayıcı bu satırda da bulmuştu:")} {a.matching_issues.map((i) => `${i.code} ${i.message}`).join(" · ")}</div>
           )}
-          {a.line_state && <div className="muted small">Satır {a.line_state.line}: {a.line_state.summary.replace(/^N\d+:\s*/, "").split(" DİKKAT:")[0]}</div>}
+          {a.line_state && <div className="muted small">{tx("Satır")} {a.line_state.line}: {a.line_state.summary.replace(/^N\d+:\s*/, "").split(/ DİKKAT:| WARNING:| CAUTION:/)[0]}</div>}
           {a.source && (
             <div className="alarm-source small">
-              Kaynak:{" "}
+               {tx("Kaynak:")}{" "}
               <a href={a.source.url} target="_blank" rel="noreferrer">
                 {a.source.title}
               </a>
@@ -258,16 +255,17 @@ function AlarmCard({ line, onError }: { line: number; onError: (m: string) => vo
 }
 
 /* ------------------------------------------------------------------ ölçü düzeltme */
-const FEATURES: [string, string][] = [
-  ["pocket", "Cep (iç ölçü)"],
-  ["slot", "Kanal (iç ölçü)"],
-  ["bore", "Frezelenmiş delik"],
-  ["contour", "Dış kontur"],
-  ["depth", "Derinlik"],
-  ["drilled_hole", "Matkap deliği"],
-];
+const FEATURES = (): [string, string][] => ([
+  ["pocket", tx("Cep (iç ölçü)")],
+  ["slot", tx("Kanal (iç ölçü)")],
+  ["bore", tx("Frezelenmiş delik")],
+  ["contour", tx("Dış kontur")],
+  ["depth", tx("Derinlik")],
+  ["drilled_hole", tx("Matkap deliği")],
+]);
 
 function WearCard({ onError }: { onError: (m: string) => void }) {
+  useLocale();
   const t = useTool<WearResult>(onError);
   const [f, setF] = useState({ feature: "pocket", nominal: "", measured: "", tolerance: "" });
   const r = t.data;
@@ -275,12 +273,12 @@ function WearCard({ onError }: { onError: (m: string) => void }) {
   const ok = f.nominal !== "" && f.measured !== "";
   return (
     <section className="card shop-card">
-      <h4>Ölçü sapması</h4>
+      <h4>{tx("Ölçü sapması")}</h4>
       <div className="wear-grid">
         <label>
-          <span>Özellik</span>
+          <span>{tx("Özellik")}</span>
           <select value={f.feature} onChange={(e) => setF({ ...f, feature: e.target.value })}>
-            {FEATURES.map(([k, l]) => (
+            {FEATURES().map(([k, l]) => (
               <option key={k} value={k}>
                 {l}
               </option>
@@ -288,16 +286,16 @@ function WearCard({ onError }: { onError: (m: string) => void }) {
           </select>
         </label>
         <label>
-          <span>Resimdeki (mm)</span>
+          <span>{tx("Resimdeki (mm)")}</span>
           <input className="mono" inputMode="decimal" value={f.nominal} onChange={(e) => setF({ ...f, nominal: e.target.value })} />
         </label>
         <label>
-          <span>Ölçülen (mm)</span>
+          <span>{tx("Ölçülen (mm)")}</span>
           <input className="mono" inputMode="decimal" value={f.measured} onChange={(e) => setF({ ...f, measured: e.target.value })} />
         </label>
         <label>
-          <span>± Tolerans</span>
-          <input className="mono" inputMode="decimal" placeholder="isteğe bağlı" value={f.tolerance} onChange={(e) => setF({ ...f, tolerance: e.target.value })} />
+          <span>{tx("± Tolerans")}</span>
+          <input className="mono" inputMode="decimal" placeholder={tx("isteğe bağlı")} value={f.tolerance} onChange={(e) => setF({ ...f, tolerance: e.target.value })} />
         </label>
       </div>
       <button
@@ -312,14 +310,13 @@ function WearCard({ onError }: { onError: (m: string) => void }) {
           })
         }
       >
-        Düzeltme öner
-      </button>
+         {tx("Düzeltme öner")} </button>
       {r && (
         <div className={`shop-result ${r.action === "none" ? "ok" : ""}`}>
           <div className="mono big-num">{r.error_mm > 0 ? "+" : ""}{r.error_mm} mm</div>
           <div>{r.message}</div>
           {r.warning && <div className="shop-alert warning small">{r.warning}</div>}
-          <div className="muted small">Öneridir; makinedeki ofseti operatör girer.</div>
+          <div className="muted small">{tx("Öneridir; makinedeki ofseti operatör girer.")}</div>
         </div>
       )}
     </section>
@@ -328,17 +325,17 @@ function WearCard({ onError }: { onError: (m: string) => void }) {
 
 /* ------------------------------------------------------------------ program farkı */
 function DiffCard({ onLoaded, onError }: { onLoaded: (g: GcodeRecord) => void; onError: (m: string) => void }) {
+  useLocale();
   const t = useTool<ProgramDiff>(onError);
   const file = useRef<HTMLInputElement>(null);
   const d = t.data;
   return (
     <section className="card shop-card">
-      <h4>Makinede değişen program</h4>
-      <div className="muted small">Operatörün makinede düzelttiği programı yükle; son üretilen programla karşılaştırılır ve riskli değişiklikler işaretlenir.</div>
+      <h4>{tx("Makinede değişen program")}</h4>
+      <div className="muted small">{tx("Operatörün makinede düzelttiği programı yükle; son üretilen programla karşılaştırılır ve riskli değişiklikler işaretlenir.")}</div>
       <div className="btn-row">
         <button className="btn small" disabled={t.busy} onClick={() => file.current?.click()}>
-          Programı yükle ve karşılaştır…
-        </button>
+           {tx("Programı yükle ve karşılaştır…")} </button>
         <input
           ref={file}
           type="file"
@@ -361,8 +358,8 @@ function DiffCard({ onLoaded, onError }: { onLoaded: (g: GcodeRecord) => void; o
       {d && (
         <>
           <div className="diff-counts small">
-            <b>{d.change_count}</b> değişiklik · <span className="sev error">{d.counts.error} kritik</span> ·{" "}
-            <span className="sev warning">{d.counts.warning} dikkat</span> · <span className="sev info">{d.counts.info} bilgi</span>
+            <b>{d.change_count}</b>  {tx("değişiklik ·")} <span className="sev error">{d.counts.error}  {tx("kritik")}</span> ·{" "}
+            <span className="sev warning">{d.counts.warning}  {tx("dikkat")}</span> · <span className="sev info">{d.counts.info}  {tx("bilgi")}</span>
           </div>
           <div className="diff-list">
             {d.changes.map((c, i) => (
@@ -372,7 +369,7 @@ function DiffCard({ onLoaded, onError }: { onLoaded: (g: GcodeRecord) => void; o
                   {c.new !== null && <div className="add">+ {c.edited_line}: {c.new}</div>}
                 </div>
                 <div className="diff-risk small">
-                  <span className={`sev ${c.severity}`}>{SEV_TR[c.severity as Sev]}</span> {c.risks.join("; ")}
+                  <span className={`sev ${c.severity}`}>{SEV_TR()[c.severity as Sev]}</span> {c.risks.join("; ")}
                 </div>
               </div>
             ))}
@@ -400,18 +397,18 @@ export default function ShopTab({
   onGcodeLoaded: (g: GcodeRecord) => void;
   onError: (m: string) => void;
 }) {
+  useLocale();
   const [line, setLine] = useState(1);
   useEffect(() => setLine(1), [gcode?.gcode_id]);
   // takım yolu oynatılırken satır takibi
   useEffect(() => {
     if (activeLine) setLine(activeLine);
   }, [activeLine]);
-  if (!gcode) return <div className="muted pad">Atölye araçları için önce G-code üretin veya yükleyin.</div>;
+  if (!gcode) return <div className="muted pad">{tx("Atölye araçları için önce G-code üretin veya yükleyin.")}</div>;
   return (
     <div className="pad stack shop-tab">
       <div className="shop-banner small">
-        <b>Atölye modu</b> · program <span className="mono">{gcode.gcode_id}</span> · {gcode.line_count} satır. Bu ekran yalnızca okur ve önerir; makineye hiçbir şey göndermez.
-      </div>
+        <b>{tx("Atölye modu")}</b> · program <span className="mono">{gcode.gcode_id}</span> · {gcode.line_count}  {tx("satır. Bu ekran yalnızca okur ve önerir; makineye hiçbir şey göndermez.")} </div>
       <LineCard gcode={gcode} line={line} setLine={setLine} onShow={onShowLine} onAsk={onAsk} onError={onError} />
       <ChecklistCard
         gcode={gcode}

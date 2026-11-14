@@ -72,6 +72,10 @@ class OfflineInterpreter:
     MULTI_REF = re.compile(r"seçt|seçili|bunlar|hepsi|tümü|bu (?:bölge|delik|yüzey|alan)")
 
     def run(self, message: str, selection: dict | list | None, call: Callable[[str, dict], dict], ws: Any) -> str:
+        from ..i18n import language
+        if language() == "en":
+            from .offline_en import run_english
+            return run_english(message, call)
         sels = [s for s in (selection if isinstance(selection, list) else [selection]) if s]
         sentences = [s.strip() for s in re.split(r"(?<!\d)[.!?\n]+|\.(?=\s|$)(?!\s*sat[ıi]r)", message) if s.strip()]
         replies: list[str] = []

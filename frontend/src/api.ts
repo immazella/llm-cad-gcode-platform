@@ -1,7 +1,14 @@
+import { getLocale, tx } from './i18n';
 import type { AppState, AuditEntry, AuditList, ConvPayload, ConvSummary, EngraveResult, FaceInfo, LlmInfo, RegionInfo, RegionRequest, UiState, GcodeRecord, MachineProfile, MachiningConfig, MeshData, ProfileChange, Toolpath, Vec3, Material, CuttingRec } from "./types";
 
+function localizedFetch(url: string, init?: RequestInit) {
+  const headers = new Headers(init?.headers);
+  headers.set('Accept-Language', getLocale());
+  return fetch(url, { ...init, headers });
+}
+
 async function req<T>(url: string, init?: RequestInit): Promise<T> {
-  const r = await fetch(url, init);
+  const r = await localizedFetch(url, init);
   if (!r.ok) {
     let msg = `${r.status} ${r.statusText}`;
     try {
@@ -25,7 +32,7 @@ export const api = {
   /** LLM ile aynı araçları doğrudan çağırır; araç hatası ({ok:false, error}) istisnaya çevrilir */
   tool: async <T,>(name: string, args: Record<string, unknown> = {}): Promise<T> => {
     const r = await req<T & { ok?: boolean; error?: string }>(`/api/tools/${name}`, json("POST", args));
-    if (r && r.ok === false) throw new Error(r.error || "İşlem başarısız.");
+    if (r && r.ok === false) throw new Error(r.error || tx("İşlem başarısız."));
     return r;
   },
   state: () => req<AppState>("/api/state"),
@@ -62,7 +69,7 @@ export const api = {
       model_changed: boolean;
       gcode_changed: boolean;
       state: Omit<AppState, "llm">;
-    }>("/api/chat", json("POST", { message, selected_face_id, selected_region_id, selected_ids, model_version, conversation_id })),
+    }>("/api/chat", json("POST", { message, selected_face_id, selected_region_id, selected_ids, model_version, conversation_id, language: getLocale() })),
   auditList: (p: { q?: string; kind?: string; offset?: number; limit?: number }) =>
     req<AuditList>(`/api/audit?${new URLSearchParams({ q: p.q ?? "", kind: p.kind ?? "", offset: String(p.offset ?? 0), limit: String(p.limit ?? 100) })}`),
   auditIds: (p: { q?: string; kind?: string }) =>
@@ -70,8 +77,8 @@ export const api = {
   auditEntry: (id: string) => req<AuditEntry>(`/api/audit/${id}`),
   /** Kayıtları JSON dosyası olarak indirir (ids=null → tümü) */
   auditDownload: async (ids: string[] | null) => {
-    const r = await fetch("/api/audit/export", json("POST", { ids }));
-    if (!r.ok) throw new Error(`İndirme başarısız: ${r.status}`);
+    const r = await localizedFetch("/api/audit/export", json("POST", { ids }));
+    if (!r.ok) throw new Error(tx("İndirme başarısız: {0}", {0: r.status}));
     const blob = await r.blob();
     const d = new Date();
     const p = (n: number) => String(n).padStart(2, "0");
@@ -86,6 +93,23 @@ export const api = {
     window.setTimeout(() => URL.revokeObjectURL(url), 2000);
   },
   chatReset: () => req("/api/chat/reset", { method: "POST" }),
+  download: async (path: string, filename: string) => {
+    const response = await localizedFetch(path);
+    if (!response.ok) throw new Error(tx('İndirme başarısız: {0}', {0: response.status}));
+    const url = URL.createObjectURL(await response.blob());
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    const disposition = response.headers.get('Content-Disposition') ?? '';
+    const encoded = /filename\*=UTF-8''([^;]+)/i.exec(disposition)?.[1];
+    const plain = /filename="([^"]+)"/i.exec(disposition)?.[1];
+    let suppliedName = plain;
+    if (encoded) { try { suppliedName = decodeURIComponent(encoded); } catch { /* malformed header: use fallback */ } }
+    anchor.download = suppliedName ?? filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 2000);
+  },
   putUi: (ui: UiState) => req("/api/ui", json("PUT", ui)),
   putSelection: (face_id: string | null, model_version: number | null, region_id: string | null = null, ids: string[] = []) =>
     req("/api/selection", json("PUT", { face_id, region_id, ids, model_version })),

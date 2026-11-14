@@ -2,11 +2,13 @@ import { App, type McpUiHostContext } from "@modelcontextprotocol/ext-apps/app-w
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { decodeEdges, decodeFaces, type CompactMesh, type SelectionInfo } from "./mesh";
+import { createLocalePreference, describeSelection, translate, type Locale, type MessageKey } from "./i18n";
 import Viewer, { DARK, LIGHT } from "./Viewer";
 import "./styles.css";
 
 const MESH_KEY = "busproje/mesh";
 const SEL_KEY = "busproje/selection";
+const preference = createLocalePreference();
 
 type ToolResult = {
   content?: { type: string; text?: string }[];
@@ -14,20 +16,28 @@ type ToolResult = {
   isError?: boolean;
   _meta?: Record<string, unknown>;
 };
+// Keep local errors as catalog keys so an existing error follows a language switch.
+// Server/user text and exception diagnostics are opaque: never rewrite them.
+type ViewerError = { key: MessageKey; detail?: string } | { external: string };
 
 function textOf(r: ToolResult): string {
   return (r.content ?? []).filter((c) => c.type === "text").map((c) => c.text ?? "").join("\n");
 }
 
-function describe(sel: SelectionInfo, version: number): string {
-  const what = sel.role ?? sel.face_id;
-  return (
-    `Kullanıcı 3B görüntüleyicide ${sel.face_id} yüzeyini seçti: ${what} (model sürümü ${version}). ` +
-    `"Seçtiğim yüzey/delik" derse bunu kastediyor; gerekirse get_selection ile doğrula.`
-  );
-}
-
 function Root() {
+  const [locale, setLocale] = useState<Locale>(() => preference.read());
+  const localeRef = useRef(locale);
+  localeRef.current = locale;
+  const t = (key: MessageKey) => translate(locale, key);
+  const changeLocale = (next: Locale) => {
+    preference.write(next);
+    setLocale(next);
+  };
+  useEffect(() => {
+    document.documentElement.lang = locale;
+    document.title = translate(locale, "title");
+  }, [locale]);
+
   const appRef = useRef<App | null>(null);
   const [connected, setConnected] = useState<"wait" | "ok" | "none">("wait");
   const [ctx, setCtx] = useState<McpUiHostContext | undefined>();
@@ -35,7 +45,8 @@ function Root() {
   const [selection, setSelection] = useState<SelectionInfo | null>(null);
   const [hovered, setHovered] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ViewerError | null>(null);
+  const errorText = error && ("external" in error ? error.external : translate(locale, error.key, { detail: error.detail ?? "" }));
 
   const accept = useCallback((r: ToolResult): boolean => {
     const m = r._meta?.[MESH_KEY] as CompactMesh | undefined;
@@ -52,10 +63,10 @@ function Root() {
     setBusy(true);
     try {
       const r = (await app.callServerTool({ name: "show_model_3d", arguments: {} })) as ToolResult;
-      if (r.isError) setError(textOf(r) || "Model alınamadı.");
-      else if (!accept(r)) setError("Sunucu mesh verisi göndermedi.");
+      if (r.isError) setError(textOf(r) ? { external: textOf(r) } : { key: "modelError" });
+      else if (!accept(r)) setError({ key: "missingMesh" });
     } catch (e) {
-      setError(`Model alınamadı: ${(e as Error).message}`);
+      setError({ key: "modelErrorDetail", detail: (e as Error).message });
     } finally {
       setBusy(false);
     }
@@ -68,7 +79,7 @@ function Root() {
     app.ontoolresult = (r) => {
       const res = r as ToolResult;
       if (res.isError) {
-        setError(textOf(res) || "Araç hata döndürdü.");
+        setError(textOf(res) ? { external: textOf(res) } : { key: "toolError" });
         return;
       }
       // Bazı istemciler sonucun _meta'sını iletmeyebilir: o durumda veriyi kendimiz isteriz
@@ -115,7 +126,7 @@ function Root() {
         })) as ToolResult;
         if (r.isError) {
           setSelection(prev);
-          setError(textOf(r));
+          setError(textOf(r) ? { external: textOf(r) } : { key: "selectionToolError" });
           return;
         }
         let sel: SelectionInfo | null = null;
@@ -126,15 +137,15 @@ function Root() {
         }
         setSelection(sel);
         setError(null);
-        // Modelin bir sonraki turda seçimi bilmesi için (destekleyen istemcilerde)
+        // Read current locale after the async response, without reconnecting the host.
         app
           .updateModelContext({
-            content: [{ type: "text", text: sel ? describe(sel, mesh.version) : "Kullanıcı görüntüleyicide seçimi kaldırdı." }],
+            content: [{ type: "text", text: describeSelection(localeRef.current, sel, mesh.version) }],
           })
           .catch(() => {});
       } catch (e) {
         setSelection(prev);
-        setError(`Seçim gönderilemedi: ${(e as Error).message}`);
+        setError({ key: "selectionError", detail: (e as Error).message });
       }
     },
     [mesh, selection],
@@ -172,28 +183,31 @@ function Root() {
           />
         ) : (
           <div className="empty">
-            {connected === "none"
-              ? "Bu sayfa bir MCP istemcisinin (ChatGPT, Claude…) içinde açılmalı."
-              : error ?? "Model yükleniyor…"}
+            {connected === "none" ? t("hostRequired") : errorText ?? t("loading")}
           </div>
         )}
 
         {s && (
           <div className="panel head">
             <div className="title">{s.name}</div>
-            <div className="sub">
-              {size} mm · sürüm {s.version}
-            </div>
+            <div className="sub">{size} mm · {t("version")} {s.version}</div>
           </div>
         )}
 
         <div className="tools">
-          <button onClick={refresh} disabled={busy || connected !== "ok"} title="Modeli yeniden al">
-            {busy ? "…" : "↻"} Yenile
+          <label className="language-control" htmlFor="viewer-language">
+            <span>{t("language")}</span>
+            <select id="viewer-language" aria-label={t("language")} value={locale} onChange={(e) => changeLocale(e.target.value === "en" ? "en" : "tr")}>
+              <option value="tr" lang="tr">Türkçe</option>
+              <option value="en" lang="en">English</option>
+            </select>
+          </label>
+          <button onClick={refresh} disabled={busy || connected !== "ok"} title={t("refreshTitle")}>
+            {busy ? "…" : "↻"} {t("refresh")}
           </button>
           {canFullscreen && (
-            <button onClick={toggleFullscreen} title="Tam ekran">
-              {fullscreen ? "Küçült" : "Tam ekran"}
+            <button onClick={toggleFullscreen} title={t(fullscreen ? "exitFullscreen" : "fullscreen")}>
+              {t(fullscreen ? "exitFullscreen" : "fullscreen")}
             </button>
           )}
         </div>
@@ -206,23 +220,23 @@ function Root() {
                   <span className="dot sel" /> {selection.face_id}
                   {selection.hole_id ? ` · ${selection.hole_id}` : selection.pocket_id ? ` · ${selection.pocket_id}` : ""}
                 </div>
-                <div className="sub">{selection.role ?? "seçildi"}</div>
-                <div className="hint">Sohbette "seçtiğim yüzey" diyerek bu yüzey üzerinde işlem isteyebilirsiniz.</div>
+                <div className="sub">{selection.role ?? t("selected")}</div>
+                <div className="hint">{t("selectionHint")}</div>
               </>
             ) : (
               <>
                 <div className="legend">
-                  <span><i className="dot hole" />delik</span>
-                  <span><i className="dot pocket" />cep</span>
-                  <span><i className="dot feature" />kazıma / özellik</span>
+                  <span><i className="dot hole" />{t("hole")}</span>
+                  <span><i className="dot pocket" />{t("pocket")}</span>
+                  <span><i className="dot feature" />{t("feature")}</span>
                 </div>
-                <div className="hint">Döndür: sürükle · Yakınlaş: tekerlek · Seç: yüzeye tıkla</div>
+                <div className="hint">{t("controlsHint")}</div>
               </>
             )}
           </div>
         )}
 
-        {error && mesh && <div className="toast" onClick={() => setError(null)}>{error}</div>}
+        {errorText && mesh && <button className="toast" title={t("dismissError")} onClick={() => setError(null)}>{errorText}</button>}
       </div>
     </div>
   );
